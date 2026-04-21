@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sift — Focus on what matters</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --border: #334155;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --accent: #3b82f6;
+      --accent-glow: rgba(59, 130, 246, 0.15);
+      --purple: #8b5cf6;
+      --amber: #f59e0b;
+      --emerald: #10b981;
+      --slate: #64748b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+    /* Nav */
+    nav {
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    nav .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .logo {
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+    .nav-links { display: flex; gap: 20px; }
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.15s;
+    }
+    .nav-links a:hover { color: var(--text); }
+
+    /* Hero */
+    .hero {
+      padding: 100px 0 60px;
+      text-align: center;
+    }
+    .hero h1 {
+      font-size: 3.5rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 20px;
+    }
+    .hero h1 .gradient {
+      background: linear-gradient(135deg, var(--accent), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      max-width: 560px;
+      margin: 0 auto 40px;
+    }
+    .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.15s;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { background: #2563eb; transform: translateY(-1px); }
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { border-color: var(--text-muted); }
+
+    /* Pipeline demo */
+    .pipeline-demo {
+      margin: 60px auto;
+      max-width: 800px;
+    }
+    .pipeline-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .pipeline-label {
+      width: 70px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .pipeline-bar {
+      height: 40px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: rgba(255,255,255,0.9);
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+    .pipeline-bar::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent 60%, rgba(255,255,255,0.05));
+    }
+    .pipeline-bar:hover { transform: scaleX(1.02); filter: brightness(1.1); }
+    .pipeline-count {
+      margin-left: auto;
+      opacity: 0.7;
+      font-size: 0.7rem;
+    }
+    .chevron {
+      width: 70px;
+      text-align: right;
+      color: var(--border);
+      font-size: 0.8rem;
+      flex-shrink: 0;
+    }
+    .chevron-spacer { width: 8px; }
+
+    /* Features */
+    .features {
+      padding: 80px 0;
+    }
+    .features h2 {
+      text-align: center;
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 48px;
+      letter-spacing: -0.02em;
+    }
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .feature-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+    .feature-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      margin-bottom: 14px;
+    }
+    .feature-card h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .feature-card p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Stack */
+    .stack {
+      padding: 60px 0;
+      text-align: center;
+    }
+    .stack h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 24px;
+    }
+    .stack-tags {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .stack-tag {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    /* Getting started */
+    .getting-started {
+      padding: 60px 0 100px;
+    }
+    .getting-started h2 {
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 32px;
+    }
+    .code-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 480px;
+      margin: 0 auto;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.85rem;
+      line-height: 1.8;
+      color: var(--text-muted);
+    }
+    .code-block .cmd { color: var(--emerald); }
+    .code-block .comment { color: var(--slate); }
+
+    /* Footer */
+    footer {
+      padding: 24px 0;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+    footer a { color: var(--text-muted); text-decoration: none; }
+    footer a:hover { color: var(--text); }
+
+    @media (max-width: 640px) {
+      .hero h1 { font-size: 2.2rem; }
+      .hero p { font-size: 1rem; }
+      .pipeline-label, .chevron { display: none; }
+      .chevron-spacer { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <span class="logo">Sift</span>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#start">Get Started</a>
+      <a href="https://github.com/graybern/sift">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="container">
+    <h1>Capture everything.<br><span class="gradient">Focus on what matters.</span></h1>
+    <p>A personal task tracker with a horizon pipeline. See all your work across every space, then sift down to what needs attention now.</p>
+    <div class="hero-actions">
+      <a href="https://github.com/graybern/sift" class="btn btn-primary">
+        View on GitHub
+      </a>
+      <a href="#start" class="btn btn-secondary">
+        Get Started
+      </a>
+    </div>
+  </div>
+
+  <div class="pipeline-demo">
+    <div class="pipeline-row">
+      <span class="pipeline-label" style="color: var(--slate)">Backlog</span>
+      <div class="pipeline-bar" style="width: 100%; background: linear-gradient(90deg, #475569, #64748b)">
+        Everything captured
+        <span class="pipeline-count">24 items</span>
+      </div>
+    </div>
+    <div class="pipeline-row">
+      <span class="chevron">&#8595;</span><span class="chevron-spacer"></span>
+    </div>
+    <div class="pipeline-row">
+      <span class="pipeline-label" style="color: var(--purple)">Later</span>
+      <div class="pipeline-bar" style="width: 78%; background: linear-gradient(90deg, #6d28d9, #8b5cf6)">
+        On the radar
+        <span class="pipeline-count">12 items</span>
+      </div>
+    </div>
+    <div class="pipeline-row">
+      <span class="chevron">&#8595;</span><span class="chevron-spacer"></span>
+    </div>
+    <div class="pipeline-row">
+      <span class="pipeline-label" style="color: var(--amber)">Soon</span>
+      <div class="pipeline-bar" style="width: 54%; background: linear-gradient(90deg, #d97706, #f59e0b)">
+        Weeks out
+        <span class="pipeline-count">6 items</span>
+      </div>
+    </div>
+    <div class="pipeline-row">
+      <span class="chevron">&#8595;</span><span class="chevron-spacer"></span>
+    </div>
+    <div class="pipeline-row">
+      <span class="pipeline-label" style="color: var(--accent)">Now</span>
+      <div class="pipeline-bar" style="width: 36%; background: linear-gradient(90deg, #2563eb, #3b82f6); box-shadow: 0 0 20px var(--accent-glow)">
+        This week
+        <span class="pipeline-count">3 items</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="features" id="features">
+  <div class="container">
+    <h2>Built to reduce noise</h2>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon" style="background: var(--accent-glow); color: var(--accent)">&#9776;</div>
+        <h3>5 Views</h3>
+        <p>Dashboard, Kanban, Funnel, Calendar, and Grid. Switch between perspectives without losing context.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background: rgba(139,92,246,0.15); color: var(--purple)">&#9699;</div>
+        <h3>Funnel View</h3>
+        <p>See items grouped by focus area across horizons. Capacity warnings call out when a tier is overloaded.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background: rgba(245,158,11,0.15); color: var(--amber)">&#9733;</div>
+        <h3>Spaces & Focus Areas</h3>
+        <p>Organize by workspace and sub-category. Filter across all of them or drill into one.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background: rgba(16,185,113,0.15); color: var(--emerald)">&#9881;</div>
+        <h3>AI Triage</h3>
+        <p>Plug in an Anthropic API key for AI-powered recommendations. Falls back to smart rules without one.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background: rgba(239,68,68,0.15); color: #ef4444">&#9868;</div>
+        <h3>Tags & Energy</h3>
+        <p>Color-coded tags, energy levels (deep focus, light, routine), priority, and effort on every item.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background: rgba(6,182,212,0.15); color: #06b6d4">&#8689;</div>
+        <h3>Docker-Ready</h3>
+        <p>One command to deploy. SQLite in a volume, no external database needed. Built for homelabs.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="stack">
+  <div class="container">
+    <h2>Tech Stack</h2>
+    <div class="stack-tags">
+      <span class="stack-tag">React 18</span>
+      <span class="stack-tag">TypeScript</span>
+      <span class="stack-tag">Vite</span>
+      <span class="stack-tag">TailwindCSS</span>
+      <span class="stack-tag">Express</span>
+      <span class="stack-tag">SQLite</span>
+      <span class="stack-tag">Anthropic SDK</span>
+      <span class="stack-tag">Docker</span>
+    </div>
+  </div>
+</section>
+
+<section class="getting-started" id="start">
+  <div class="container">
+    <h2>Get Started</h2>
+    <div class="code-block">
+      <span class="comment"># Clone and run locally</span><br>
+      <span class="cmd">git clone</span> https://github.com/graybern/sift.git<br>
+      <span class="cmd">cd</span> sift<br>
+      <span class="cmd">npm install</span><br>
+      <span class="cmd">npm run dev</span><br>
+      <br>
+      <span class="comment"># Or deploy with Docker</span><br>
+      <span class="cmd">docker compose up -d</span>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <a href="https://github.com/graybern/sift">Sift</a> &middot; MIT License
+  </div>
+</footer>
+
+</body>
+</html>
