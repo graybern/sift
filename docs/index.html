@@ -65,13 +65,21 @@
       transition: color 0.15s;
     }
     .nav-links a:hover { color: var(--text); }
-    .stars-badge img {
-      height: 20px;
-      vertical-align: middle;
-      opacity: 0.8;
-      transition: opacity 0.15s;
+    .stars-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.15s;
     }
-    .stars-badge:hover img { opacity: 1; }
+    .stars-link:hover { color: var(--amber); }
+    .stars-link svg {
+      width: 14px;
+      height: 14px;
+    }
 
     /* Hero */
     .hero {
@@ -484,7 +492,7 @@
       <a href="#features">Features</a>
       <a href="#start">Get Started</a>
       <a href="https://github.com/graybern/sift">GitHub</a>
-      <a href="https://github.com/graybern/sift" class="stars-badge"><img src="https://img.shields.io/github/stars/graybern/sift?style=flat&color=3b82f6&labelColor=1e293b" alt="GitHub stars"></a>
+      <a href="https://github.com/graybern/sift" class="stars-link"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span id="star-count">Star</span></a>
     </div>
   </div>
 </nav>
@@ -727,5 +735,15 @@
   </div>
 </footer>
 
+<script>
+fetch('https://api.github.com/repos/graybern/sift')
+  .then(r => r.json())
+  .then(d => {
+    if (typeof d.stargazers_count === 'number') {
+      document.getElementById('star-count').textContent = d.stargazers_count.toLocaleString();
+    }
+  })
+  .catch(() => {});
+</script>
 </body>
 </html>
