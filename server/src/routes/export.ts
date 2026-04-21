@@ -33,7 +33,7 @@ router.get('/json', (req, res) => {
     itemTags,
   };
 
-  const filename = `project-tracker-export-${new Date().toISOString().slice(0, 10)}.json`;
+  const filename = `sift-export-${new Date().toISOString().slice(0, 10)}.json`;
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   res.setHeader('Content-Type', 'application/json');
   res.json(exportData);
@@ -90,7 +90,7 @@ router.get('/json/:spaceId', (req, res) => {
   };
 
   const safeName = space.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-  const filename = `project-tracker-${safeName}-${new Date().toISOString().slice(0, 10)}.json`;
+  const filename = `sift-${safeName}-${new Date().toISOString().slice(0, 10)}.json`;
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   res.setHeader('Content-Type', 'application/json');
   res.json(exportData);
@@ -114,7 +114,7 @@ router.get('/db', (_req, res) => {
   try {
     db.exec(`VACUUM INTO '${backupPath.replace(/'/g, "''")}'`);
 
-    const downloadName = `project-tracker-backup-${new Date().toISOString().slice(0, 10)}.db`;
+    const downloadName = `sift-backup-${new Date().toISOString().slice(0, 10)}.db`;
     res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
     res.setHeader('Content-Type', 'application/octet-stream');
 

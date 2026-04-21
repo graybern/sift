@@ -103,7 +103,7 @@ export async function downloadExportJson() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `project-tracker-export-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `sift-export-${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -115,7 +115,7 @@ export async function downloadDbBackup() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `project-tracker-backup-${new Date().toISOString().slice(0, 10)}.db`;
+  a.download = `sift-backup-${new Date().toISOString().slice(0, 10)}.db`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -128,7 +128,7 @@ export async function downloadSpaceExportJson(spaceId: string, spaceName: string
   const a = document.createElement('a');
   const safeName = spaceName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
   a.href = url;
-  a.download = `project-tracker-${safeName}-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `sift-${safeName}-${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }

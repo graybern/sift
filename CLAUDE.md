@@ -1,4 +1,4 @@
-# Project Tracker
+# Sift
 
 A personal pipeline-style project/task tracker, built as a Notion replacement.
 
@@ -11,7 +11,7 @@ Notion was too slow, too convoluted, too much friction. This tool should feel fa
 ## Architecture
 
 ```
-project-tracker/
+sift/
 ├── client/src/              # React 18 + TypeScript + Vite + TailwindCSS
 │   ├── components/
 │   │   ├── dashboard/       # Analytics (funnel, velocity, energy, weekly review, AI advisor)

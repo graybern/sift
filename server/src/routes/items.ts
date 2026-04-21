@@ -283,7 +283,7 @@ router.post('/url-meta', async (req, res) => {
 
     const response = await fetch(url, {
       signal: controller.signal,
-      headers: { 'User-Agent': 'FocusFlow/1.0' },
+      headers: { 'User-Agent': 'Sift/1.0' },
     });
     clearTimeout(timeout);
 
