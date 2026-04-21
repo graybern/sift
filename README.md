@@ -1,6 +1,6 @@
 # Sift
 
-A fast, focused personal task tracker built as a Notion replacement. Tasks flow through a horizon pipeline — from raw capture to completion — so you can see everything across every space and focus area, then pull what matters most into active work.
+A fast, focused personal task tracker. Tasks flow through a horizon pipeline — from raw capture to completion — so you can see everything across every space and focus area, then pull what matters most into active work.
 
 ## Features
 

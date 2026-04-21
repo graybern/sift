@@ -1,12 +1,12 @@
 # Sift
 
-A personal pipeline-style project/task tracker, built as a Notion replacement.
+A personal pipeline-style project/task tracker.
 
 ## What this is and why
 
 Tasks and todos flow through a **horizon pipeline** — from raw capture through prioritization to completion. The key insight: see all items **across every space and focus area** in one unified pipeline, so you can plan focus time (weeknight, weekend morning, etc.) by looking at the full picture and pulling what matters most into active work.
 
-Notion was too slow, too convoluted, too much friction. This tool should feel fast, focused, and simple. Every design decision reduces cognitive load.
+This tool should feel fast, focused, and simple. Every design decision reduces cognitive load.
 
 ## Architecture
 
