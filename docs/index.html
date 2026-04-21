@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sift — Focus on what matters</title>
+  <link rel="icon" type="image/svg+xml" href="funnel.svg">
   <style>
     :root {
       --bg: #0f172a;
@@ -46,6 +47,14 @@
       font-weight: 800;
       letter-spacing: -0.02em;
       color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo svg {
+      width: 22px;
+      height: 22px;
+      color: var(--accent);
     }
     .nav-links { display: flex; gap: 20px; }
     .nav-links a {
@@ -56,6 +65,13 @@
       transition: color 0.15s;
     }
     .nav-links a:hover { color: var(--text); }
+    .stars-badge img {
+      height: 20px;
+      vertical-align: middle;
+      opacity: 0.8;
+      transition: opacity 0.15s;
+    }
+    .stars-badge:hover img { opacity: 1; }
 
     /* Hero */
     .hero {
@@ -160,6 +176,186 @@
       flex-shrink: 0;
     }
     .chevron-spacer { width: 8px; }
+
+    /* App mockup */
+    .app-mockup {
+      margin: 20px auto 0;
+      max-width: 860px;
+      padding: 0 24px;
+    }
+    .mockup-label {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+    .browser-frame {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .browser-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      background: #172033;
+    }
+    .browser-dots {
+      display: flex;
+      gap: 6px;
+    }
+    .browser-dots span {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+    .browser-url {
+      flex: 1;
+      background: var(--bg);
+      border-radius: 6px;
+      padding: 4px 12px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+    .mock-app {
+      display: flex;
+      min-height: 340px;
+    }
+    .mock-sidebar {
+      width: 180px;
+      border-right: 1px solid var(--border);
+      padding: 12px;
+      flex-shrink: 0;
+      background: #172033;
+    }
+    .mock-sidebar-title {
+      font-size: 0.85rem;
+      font-weight: 800;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .mock-space {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+    .mock-space.active {
+      background: var(--accent-glow);
+      color: var(--accent);
+    }
+    .mock-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .mock-main {
+      flex: 1;
+      padding: 14px;
+      overflow: hidden;
+    }
+    .mock-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .mock-view-tabs {
+      display: flex;
+      gap: 4px;
+    }
+    .mock-tab {
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .mock-tab.active {
+      background: var(--accent-glow);
+      color: var(--accent);
+    }
+    .mock-search {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      width: 120px;
+    }
+    .mock-columns {
+      display: flex;
+      gap: 10px;
+      overflow: hidden;
+    }
+    .mock-col {
+      flex: 1;
+      min-width: 0;
+    }
+    .mock-col-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+    .mock-col-count {
+      font-size: 0.6rem;
+      font-weight: 600;
+      background: var(--bg);
+      padding: 1px 6px;
+      border-radius: 10px;
+      color: var(--text-muted);
+    }
+    .mock-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 6px;
+      transition: border-color 0.15s;
+    }
+    .mock-card:hover { border-color: var(--text-muted); }
+    .mock-card-title {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .mock-card-meta {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .mock-badge {
+      font-size: 0.55rem;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 4px;
+      color: rgba(255,255,255,0.85);
+    }
+
+    @media (max-width: 640px) {
+      .mock-sidebar { display: none; }
+      .mock-columns { gap: 6px; }
+      .mock-search { display: none; }
+    }
 
     /* Features */
     .features {
@@ -283,11 +479,12 @@
 
 <nav>
   <div class="container">
-    <span class="logo">Sift</span>
+    <span class="logo"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h18l-6.5 7.5V18l-5 3V11.5L3 4z"/></svg>Sift</span>
     <div class="nav-links">
       <a href="#features">Features</a>
       <a href="#start">Get Started</a>
       <a href="https://github.com/graybern/sift">GitHub</a>
+      <a href="https://github.com/graybern/sift" class="stars-badge"><img src="https://img.shields.io/github/stars/graybern/sift?style=flat&color=3b82f6&labelColor=1e293b" alt="GitHub stars"></a>
     </div>
   </div>
 </nav>
@@ -346,6 +543,113 @@
     </div>
   </div>
 </section>
+
+<div class="app-mockup">
+  <p class="mockup-label">What it looks like</p>
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><span></span><span></span><span></span></div>
+      <div class="browser-url">localhost:5174</div>
+    </div>
+    <div class="mock-app">
+      <div class="mock-sidebar">
+        <div class="mock-sidebar-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px"><path d="M3 4h18l-6.5 7.5V18l-5 3V11.5L3 4z"/></svg>Sift</div>
+        <div class="mock-space active"><span class="mock-dot" style="background:var(--accent)"></span> All Spaces</div>
+        <div class="mock-space"><span class="mock-dot" style="background:var(--purple)"></span> Work</div>
+        <div class="mock-space"><span class="mock-dot" style="background:var(--emerald)"></span> Side Projects</div>
+        <div class="mock-space"><span class="mock-dot" style="background:var(--amber)"></span> Home</div>
+      </div>
+      <div class="mock-main">
+        <div class="mock-header">
+          <div class="mock-view-tabs">
+            <span class="mock-tab">Dashboard</span>
+            <span class="mock-tab active">Kanban</span>
+            <span class="mock-tab">Funnel</span>
+            <span class="mock-tab">Calendar</span>
+            <span class="mock-tab">Grid</span>
+          </div>
+          <div class="mock-search">&#8984;K Quick capture</div>
+        </div>
+        <div class="mock-columns">
+          <div class="mock-col">
+            <div class="mock-col-header"><span style="color:var(--slate)">&#9679;</span> Backlog <span class="mock-col-count">8</span></div>
+            <div class="mock-card">
+              <div class="mock-card-title">Research hosting options</div>
+              <div class="mock-card-meta">
+                <span class="mock-badge" style="background:var(--purple)">Work</span>
+                <span class="mock-badge" style="background:#334155">S</span>
+              </div>
+            </div>
+            <div class="mock-card">
+              <div class="mock-card-title">Update dependencies</div>
+              <div class="mock-card-meta">
+                <span class="mock-badge" style="background:var(--emerald)">Side Projects</span>
+              </div>
+            </div>
+          </div>
+          <div class="mock-col">
+            <div class="mock-col-header"><span style="color:var(--amber)">&#9679;</span> Soon <span class="mock-col-count">4</span></div>
+            <div class="mock-card">
+              <div class="mock-card-title">Design settings page</div>
+              <div class="mock-card-meta">
+                <span class="mock-badge" style="background:var(--purple)">Work</span>
+                <span class="mock-badge" style="background:#92400e">M</span>
+                <span class="mock-badge" style="background:var(--accent)">deep</span>
+              </div>
+            </div>
+            <div class="mock-card">
+              <div class="mock-card-title">Fix export bug</div>
+              <div class="mock-card-meta">
+                <span class="mock-badge" style="background:#dc2626">P1</span>
+                <span class="mock-badge" style="background:#334155">S</span>
+              </div>
+            </div>
+          </div>
+          <div class="mock-col">
+            <div class="mock-col-header"><span style="color:var(--accent)">&#9679;</span> Now <span class="mock-col-count">3</span></div>
+            <div class="mock-card">
+              <div class="mock-card-title">Build tag filtering UI</div>
+              <div class="mock-card-meta">
+                <span class="mock-badge" style="background:var(--emerald)">Side Projects</span>
+                <span class="mock-badge" style="background:#92400e">M</span>
+                <span class="mock-badge" style="background:var(--accent)">deep</span>
+              </div>
+            </div>
+            <div class="mock-card">
+              <div class="mock-card-title">Write deploy docs</div>
+              <div class="mock-card-meta">
+                <span class="mock-badge" style="background:var(--amber)">Home</span>
+                <span class="mock-badge" style="background:#334155">S</span>
+              </div>
+            </div>
+            <div class="mock-card">
+              <div class="mock-card-title">Weekly review prep</div>
+              <div class="mock-card-meta">
+                <span class="mock-badge" style="background:var(--purple)">Work</span>
+                <span class="mock-badge" style="background:#6d28d9">routine</span>
+              </div>
+            </div>
+          </div>
+          <div class="mock-col">
+            <div class="mock-col-header"><span style="color:var(--emerald)">&#9679;</span> Done <span class="mock-col-count">12</span></div>
+            <div class="mock-card" style="opacity:0.6">
+              <div class="mock-card-title" style="text-decoration:line-through">Set up CI pipeline</div>
+              <div class="mock-card-meta">
+                <span class="mock-badge" style="background:var(--purple)">Work</span>
+              </div>
+            </div>
+            <div class="mock-card" style="opacity:0.6">
+              <div class="mock-card-title" style="text-decoration:line-through">Docker compose file</div>
+              <div class="mock-card-meta">
+                <span class="mock-badge" style="background:var(--emerald)">Side Projects</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <section class="features" id="features">
   <div class="container">

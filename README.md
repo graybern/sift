@@ -1,6 +1,10 @@
-# Sift
+<p align="center">
+  <img src="docs/funnel.svg" alt="Sift" width="48" height="48">
+</p>
 
-A fast, focused personal task tracker. Tasks flow through a horizon pipeline — from raw capture to completion — so you can see everything across every space and focus area, then pull what matters most into active work.
+<h1 align="center">Sift</h1>
+
+<p align="center">A fast, focused personal task tracker.<br>Tasks flow through a horizon pipeline — from raw capture to completion — so you can see everything across every space and focus area, then pull what matters most into active work.</p>
 
 ## Features
 
