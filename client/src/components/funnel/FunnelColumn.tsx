@@ -21,7 +21,7 @@ export function FunnelColumn({
   const droppableId = `${horizon}:${focusAreaId}`;
 
   return (
-    <div className="flex-1 min-w-0">
+    <div className="min-w-[260px] flex-1">
       <div className="flex items-center gap-1.5 mb-1 px-1">
         {color && <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />}
         <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 truncate">

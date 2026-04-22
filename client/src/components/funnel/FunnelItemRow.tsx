@@ -39,7 +39,7 @@ export function FunnelItemRow({
       )}
     >
       <div className="flex items-start gap-2">
-        <p className={clsx('font-medium leading-snug flex-1 truncate', compact ? 'text-xs' : 'text-sm')}>
+        <p className={clsx('font-medium leading-snug flex-1', compact ? 'text-xs' : 'text-sm')}>
           {item.title}
         </p>
         {item.priority > 0 && (

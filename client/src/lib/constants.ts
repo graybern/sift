@@ -80,7 +80,7 @@ export const ITEM_TYPES = [
   { value: 'project' as const, label: 'Project', icon: 'FolderKanban' },
 ];
 
-export const FUNNEL_TIER_LIMITS: Record<string, number> = {
+export const DEFAULT_HORIZON_LIMITS: Record<string, number> = {
   later: 15,
   soon: 8,
   now: 5,

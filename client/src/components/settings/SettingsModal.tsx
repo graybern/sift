@@ -24,6 +24,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   const [inFocusLimit, setInFocusLimit] = useState(5);
   const [autoArchiveDays, setAutoArchiveDays] = useState(30);
+  const [laterLimit, setLaterLimit] = useState(15);
+  const [soonLimit, setSoonLimit] = useState(8);
+  const [nowLimit, setNowLimit] = useState(5);
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('claude-sonnet-4-20250514');
   const [showApiKey, setShowApiKey] = useState(false);
@@ -43,6 +46,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     if (settings) {
       setInFocusLimit(settings.inFocusLimit);
       setAutoArchiveDays(settings.autoArchiveDays);
+      setLaterLimit(settings.horizonLimits?.later ?? 15);
+      setSoonLimit(settings.horizonLimits?.soon ?? 8);
+      setNowLimit(settings.horizonLimits?.now ?? 5);
       setApiKey(settings.anthropicApiKey || '');
       setModel(settings.anthropicModel || 'claude-sonnet-4-20250514');
     }
@@ -53,6 +59,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       {
         inFocusLimit,
         autoArchiveDays,
+        horizonLimits: { later: laterLimit, soon: soonLimit, now: nowLimit },
         anthropicApiKey: apiKey || undefined,
         anthropicModel: model,
       },
@@ -187,6 +194,51 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 onChange={(e) => setAutoArchiveDays(parseInt(e.target.value) || 30)}
                 className={inputClass}
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-2">
+                Horizon limits
+                <span className="ml-1 text-slate-400 font-normal">capacity warnings per tier</span>
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-purple-400 mb-1">Later</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={laterLimit}
+                    onChange={(e) => setLaterLimit(parseInt(e.target.value) || 15)}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-amber-400 mb-1">Soon</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={soonLimit}
+                    onChange={(e) => setSoonLimit(parseInt(e.target.value) || 8)}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-blue-400 mb-1">Now</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={nowLimit}
+                    onChange={(e) => setNowLimit(parseInt(e.target.value) || 5)}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">
+                Warning at 70%, overloaded above limit. Backlog has no limit.
+              </p>
             </div>
           </div>
         </section>

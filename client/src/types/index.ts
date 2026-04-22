@@ -62,12 +62,19 @@ export interface Item {
   tags?: Tag[];
 }
 
+export interface HorizonLimits {
+  later: number;
+  soon: number;
+  now: number;
+}
+
 export interface UserSettings {
   theme: 'light' | 'dark' | 'system';
   anthropicApiKey?: string;
   anthropicModel?: string;
   inFocusLimit: number;
   autoArchiveDays: number;
+  horizonLimits?: HorizonLimits;
 }
 
 export interface CreateItemInput {

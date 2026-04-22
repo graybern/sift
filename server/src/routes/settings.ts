@@ -13,6 +13,7 @@ router.get('/', (req, res) => {
     theme: 'dark',
     inFocusLimit: 5,
     autoArchiveDays: 30,
+    horizonLimits: { later: 15, soon: 8, now: 5 },
   };
 
   const settings = user?.settings ? { ...defaults, ...JSON.parse(user.settings) } : defaults;

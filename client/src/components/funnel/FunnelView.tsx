@@ -5,9 +5,11 @@ import { Archive, CalendarClock, Timer, Zap, ChevronsDown } from 'lucide-react';
 import { useItems, useUpdateItem } from '../../hooks/useItems';
 import { useSpaces } from '../../hooks/useSpaces';
 import { useFocusAreas } from '../../hooks/useFocusAreas';
+import { useSettings } from '../../hooks/useSettings';
 import { ItemModal } from '../items/ItemModal';
 import { FunnelFilterBar } from './FunnelFilterBar';
 import { FunnelTier } from './FunnelTier';
+import { DEFAULT_HORIZON_LIMITS } from '../../lib/constants';
 import type { Item, Horizon, UpdateItemInput } from '../../types';
 
 const UNASSIGNED_ID = '__unassigned__';
@@ -19,25 +21,46 @@ const TIERS = [
   { id: 'now' as Horizon, label: 'Now', Icon: Zap, color: '#3b82f6', bg: 'bg-blue-50/30 dark:bg-blue-900/10' },
 ];
 
-const TIER_MAX_WIDTHS = ['100%', '80%', '64%', '50%'];
+const TIER_MAX_WIDTHS = ['100%', '88%', '72%', '56%'];
 
 export function FunnelView() {
   const { data: items = [] } = useItems();
   const { data: spaces = [] } = useSpaces();
   const { data: focusAreas = [] } = useFocusAreas();
+  const { data: settings } = useSettings();
   const updateItem = useUpdateItem();
+
+  const horizonLimits: Record<string, number> = { ...DEFAULT_HORIZON_LIMITS, ...settings?.horizonLimits };
 
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [energyFilter, setEnergyFilter] = useState('');
+  const [priorityFilter, setPriorityFilter] = useState<number | null>(null);
+  const [effortFilter, setEffortFilter] = useState('');
   const [selectedFocusAreaIds, setSelectedFocusAreaIds] = useState<Set<string> | null>(null);
+  const [selectedSpaceIds, setSelectedSpaceIds] = useState<Set<string> | null>(null);
   const [includeUnassigned, setIncludeUnassigned] = useState(true);
 
-  // Initialize selection to all focus areas on first render
+  // Initialize selections on first render
   const effectiveSelected = useMemo(() => {
     if (selectedFocusAreaIds !== null) return selectedFocusAreaIds;
     return new Set(focusAreas.map((fa) => fa.id));
   }, [selectedFocusAreaIds, focusAreas]);
+
+  const effectiveSpaces = useMemo(() => {
+    if (selectedSpaceIds !== null) return selectedSpaceIds;
+    return new Set(spaces.map((s) => s.id));
+  }, [selectedSpaceIds, spaces]);
+
+  const toggleSpace = useCallback((id: string) => {
+    setSelectedSpaceIds((prev) => {
+      const current = prev ?? new Set(spaces.map((s) => s.id));
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, [spaces]);
 
   const toggleFocusArea = useCallback((id: string) => {
     setSelectedFocusAreaIds((prev) => {
@@ -92,6 +115,10 @@ export function FunnelView() {
 
       if (searchQuery && !item.title.toLowerCase().includes(searchQuery.toLowerCase())) continue;
       if (energyFilter && item.energy !== energyFilter) continue;
+      if (priorityFilter !== null && item.priority !== priorityFilter) continue;
+      if (effortFilter && item.effort !== effortFilter) continue;
+      if (item.space_id && !effectiveSpaces.has(item.space_id)) continue;
+      if (!item.space_id && !includeUnassigned) continue;
 
       const columnId = item.focus_area_id || UNASSIGNED_ID;
 
@@ -115,7 +142,7 @@ export function FunnelView() {
     }
 
     return result;
-  }, [items, searchQuery, energyFilter, effectiveSelected, includeUnassigned]);
+  }, [items, searchQuery, energyFilter, priorityFilter, effortFilter, effectiveSelected, effectiveSpaces, includeUnassigned]);
 
   const handleDragEnd = (result: DropResult) => {
     const { draggableId, destination, source } = result;
@@ -148,13 +175,22 @@ export function FunnelView() {
     }
 
     updateItem.mutate(updates, {
+      onSuccess: () => {
+        const limit = horizonLimits[destHorizon];
+        if (limit) {
+          const currentCount = items.filter((i) => i.horizon === destHorizon && i.id !== draggableId).length + 1;
+          if (currentCount > limit) {
+            toast.warning(`${destHorizon.charAt(0).toUpperCase() + destHorizon.slice(1)} has ${currentCount}/${limit} items — consider moving something back`);
+          }
+        }
+      },
       onError: () => toast.error('Failed to move item'),
     });
   };
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="max-w-6xl mx-auto px-6 py-4">
+      <div className="px-6 py-4">
         <FunnelFilterBar
           spaces={spaces}
           focusAreas={focusAreas}
@@ -168,6 +204,12 @@ export function FunnelView() {
           onSearchChange={setSearchQuery}
           energyFilter={energyFilter}
           onEnergyFilterChange={setEnergyFilter}
+          priorityFilter={priorityFilter}
+          onPriorityFilterChange={setPriorityFilter}
+          effortFilter={effortFilter}
+          onEffortFilterChange={setEffortFilter}
+          selectedSpaceIds={effectiveSpaces}
+          onToggleSpace={toggleSpace}
         />
 
         <DragDropContext onDragEnd={handleDragEnd}>
@@ -193,6 +235,7 @@ export function FunnelView() {
                       columns={selectedColumns}
                       itemsByColumn={horizonMap}
                       totalItems={totalItems}
+                      limit={horizonLimits[tier.id]}
                       spaces={spaces}
                       focusAreas={focusAreas}
                       onEditItem={setEditingItem}
