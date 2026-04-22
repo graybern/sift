@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, Plus } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useItems } from '../../hooks/useItems';
 import { useSpaces, useActiveSpace } from '../../hooks/useSpaces';
@@ -24,6 +24,7 @@ export function GridView() {
   const { data: spaces = [] } = useSpaces();
   const { data: focusAreas = [] } = useFocusAreas();
   const [editingItem, setEditingItem] = useState<Item | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
   const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [horizonFilter, setHorizonFilter] = useState<string>('');
@@ -97,7 +98,15 @@ export function GridView() {
               {h.label}
             </button>
           ))}
-          <span className="ml-auto text-xs text-slate-400">{sortedItems.length} items</span>
+          <span className="ml-auto flex items-center gap-3">
+            <span className="text-xs text-slate-400">{sortedItems.length} items</span>
+            <button
+              onClick={() => setIsAdding(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-500 hover:bg-blue-600 text-white transition-colors"
+            >
+              <Plus size={14} /> New Item
+            </button>
+          </span>
         </div>
 
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
@@ -183,10 +192,12 @@ export function GridView() {
       </div>
 
       <ItemModal
-        isOpen={editingItem !== null}
+        isOpen={editingItem !== null || isAdding}
         item={editingItem}
         defaultHorizon={null}
-        onClose={() => setEditingItem(null)}
+        defaultSpaceId={activeSpaceId}
+        defaultFocusAreaId={activeFocusAreaId}
+        onClose={() => { setEditingItem(null); setIsAdding(false); }}
       />
     </div>
   );

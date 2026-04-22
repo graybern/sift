@@ -1,22 +1,31 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   AlertTriangle, Clock, CheckCircle2, TrendingUp,
-  Target, BarChart3, Calendar, Zap
+  Target, BarChart3, Calendar, Zap, Weight, ArrowLeftRight, Timer
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { getStats } from '../../lib/api';
+import { useSpaces } from '../../hooks/useSpaces';
 import { VelocityChart } from './VelocityChart';
 import { StageBar } from './StageBar';
 import { FunnelChart } from './FunnelChart';
 import { AiAdvisor } from './AiAdvisor';
 import { WeeklyReviewCard } from './WeeklyReviewCard';
 import { EnergyChart } from './EnergyChart';
+import { PriorityChart } from './PriorityChart';
+import { EffortChart } from './EffortChart';
+import { FlowChart } from './FlowChart';
+import { AgeChart } from './AgeChart';
 import { FunnelIcon } from '../ui/FunnelIcon';
 
 export function Dashboard() {
+  const [spaceFilter, setSpaceFilter] = useState('');
+  const { data: spaces = [] } = useSpaces();
+
   const { data: stats, isLoading } = useQuery({
-    queryKey: ['stats'],
-    queryFn: getStats,
+    queryKey: ['stats', spaceFilter],
+    queryFn: () => getStats(spaceFilter || undefined),
     refetchInterval: 30000,
   });
 
@@ -30,11 +39,49 @@ export function Dashboard() {
     );
   }
 
-  const { horizonDistribution, bySpace, byEnergy, byFocusArea, overdue, dueSoon, recentlyCompleted, velocity, staleBacklog, needsAttention, totals } = stats;
+  const {
+    horizonDistribution, bySpace, byEnergy, byPriority, byEffort, byFocusArea,
+    overdue, dueSoon, recentlyCompleted, velocity, createdPerDay, avgAge,
+    staleBacklog, needsAttention, totals,
+  } = stats;
 
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-7xl mx-auto p-6 space-y-6">
+        {/* Space filter */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSpaceFilter('')}
+            className={clsx(
+              'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+              !spaceFilter
+                ? 'bg-blue-500/10 text-blue-500'
+                : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            )}
+          >
+            All Spaces
+          </button>
+          {spaces.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => setSpaceFilter(spaceFilter === s.id ? '' : s.id)}
+              className={clsx(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+                spaceFilter === s.id
+                  ? 'text-white'
+                  : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              )}
+              style={spaceFilter === s.id ? { backgroundColor: s.color } : undefined}
+            >
+              <span
+                className="w-2 h-2 rounded-full flex-shrink-0"
+                style={spaceFilter !== s.id ? { backgroundColor: s.color } : { backgroundColor: 'rgba(255,255,255,0.5)' }}
+              />
+              {s.name}
+            </button>
+          ))}
+        </div>
+
         {/* Summary cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <SummaryCard
@@ -67,7 +114,7 @@ export function Dashboard() {
           />
         </div>
 
-        {/* Funnel + Stage bar side by side */}
+        {/* Funnel + Stage bar */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
             <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
@@ -86,6 +133,26 @@ export function Dashboard() {
           </div>
         </div>
 
+        {/* Created vs Completed Flow + Age Analysis */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
+              <ArrowLeftRight size={16} className="text-blue-400" />
+              Created vs Completed
+              <span className="text-xs font-normal text-slate-400 ml-auto">Last 14 days</span>
+            </h3>
+            <FlowChart velocity={velocity} createdPerDay={createdPerDay || []} />
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
+              <Timer size={16} className="text-amber-400" />
+              Average Age by Horizon
+            </h3>
+            <AgeChart avgAge={avgAge || []} />
+          </div>
+        </div>
+
         {/* Weekly Review + Energy */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <WeeklyReviewCard />
@@ -95,6 +162,25 @@ export function Dashboard() {
               Energy Distribution
             </h3>
             <EnergyChart byEnergy={byEnergy || []} />
+          </div>
+        </div>
+
+        {/* Priority + Effort */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
+              <AlertTriangle size={16} className="text-red-400" />
+              Priority Distribution
+            </h3>
+            <PriorityChart byPriority={byPriority || []} />
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
+              <Weight size={16} className="text-orange-400" />
+              Effort Breakdown
+            </h3>
+            <EffortChart byEffort={byEffort || []} />
           </div>
         </div>
 
@@ -135,7 +221,7 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Focus Area breakdown (if any exist) */}
+        {/* Focus Area breakdown */}
         {byFocusArea && byFocusArea.length > 0 && (
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
             <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">

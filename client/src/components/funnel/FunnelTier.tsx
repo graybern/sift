@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { clsx } from 'clsx';
+import { Plus } from 'lucide-react';
 import { FunnelColumn } from './FunnelColumn';
 import type { LucideIcon } from 'lucide-react';
 import type { Item, Horizon, Space, FocusArea } from '../../types';
@@ -27,6 +28,7 @@ interface FunnelTierProps {
   spaces: Space[];
   focusAreas: FocusArea[];
   onEditItem: (item: Item) => void;
+  onAdd: () => void;
 }
 
 type TierState = 'healthy' | 'warning' | 'overloaded';
@@ -108,7 +110,7 @@ function CapacityPopover({ total, limit, state, color }: {
 }
 
 export function FunnelTier({
-  tier, columns, itemsByColumn, totalItems, limit, spaces, focusAreas, onEditItem,
+  tier, columns, itemsByColumn, totalItems, limit, spaces, focusAreas, onEditItem, onAdd,
 }: FunnelTierProps) {
   const Icon = tier.Icon;
   const isNow = tier.id === 'now';
@@ -182,6 +184,14 @@ export function FunnelTier({
               <CapacityPopover total={totalItems} limit={limit} state={state} color={tier.color} />
             )}
           </div>
+
+          <button
+            onClick={onAdd}
+            className="ml-auto p-1 rounded-md text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+            title={`Add to ${tier.label}`}
+          >
+            <Plus size={14} />
+          </button>
         </div>
       </div>
 

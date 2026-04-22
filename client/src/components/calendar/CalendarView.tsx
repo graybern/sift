@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useItems } from '../../hooks/useItems';
 import { useActiveSpace } from '../../hooks/useSpaces';
@@ -16,6 +16,7 @@ export function CalendarView() {
       : undefined;
   const { data: items = [] } = useItems(filters);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
+  const [addingWithDate, setAddingWithDate] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState(() => new Date());
 
   const year = currentDate.getFullYear();
@@ -71,12 +72,20 @@ export function CalendarView() {
               <ChevronRight size={18} />
             </button>
           </div>
-          <button
-            onClick={goToday}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-colors"
-          >
-            Today
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={goToday}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-colors"
+            >
+              Today
+            </button>
+            <button
+              onClick={() => setAddingWithDate(todayStr)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-500 hover:bg-blue-600 text-white transition-colors"
+            >
+              <Plus size={14} /> New Item
+            </button>
+          </div>
         </div>
 
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
@@ -100,17 +109,25 @@ export function CalendarView() {
                 <div
                   key={i}
                   className={clsx(
-                    'min-h-[100px] border-b border-r border-slate-100 dark:border-slate-800 p-1',
+                    'group min-h-[100px] border-b border-r border-slate-100 dark:border-slate-800 p-1',
                     isToday && 'bg-blue-50/50 dark:bg-blue-500/5'
                   )}
                 >
                   <div className={clsx(
-                    'text-xs font-medium mb-1 px-1',
+                    'flex items-center justify-between text-xs font-medium mb-1 px-1',
                     isToday ? 'text-blue-500' : isPast ? 'text-slate-300 dark:text-slate-600' : 'text-slate-500'
                   )}>
-                    {isToday ? (
-                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-500 text-white text-[10px]">{day}</span>
-                    ) : day}
+                    <span>
+                      {isToday ? (
+                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-500 text-white text-[10px]">{day}</span>
+                      ) : day}
+                    </span>
+                    <button
+                      onClick={() => setAddingWithDate(dateStr)}
+                      className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"
+                    >
+                      <Plus size={12} />
+                    </button>
                   </div>
                   <div className="space-y-0.5">
                     {dayItems.slice(0, 3).map((item) => {
@@ -173,10 +190,11 @@ export function CalendarView() {
       </div>
 
       <ItemModal
-        isOpen={editingItem !== null}
+        isOpen={editingItem !== null || addingWithDate !== null}
         item={editingItem}
         defaultHorizon={null}
-        onClose={() => setEditingItem(null)}
+        defaultDueDate={addingWithDate}
+        onClose={() => { setEditingItem(null); setAddingWithDate(null); }}
       />
     </div>
   );

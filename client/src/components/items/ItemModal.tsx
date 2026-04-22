@@ -17,10 +17,13 @@ interface ItemModalProps {
   isOpen: boolean;
   item: Item | null;
   defaultHorizon: Horizon | null;
+  defaultSpaceId?: string | null;
+  defaultFocusAreaId?: string | null;
+  defaultDueDate?: string | null;
   onClose: () => void;
 }
 
-export function ItemModal({ isOpen, item, defaultHorizon, onClose }: ItemModalProps) {
+export function ItemModal({ isOpen, item, defaultHorizon, defaultSpaceId, defaultFocusAreaId, defaultDueDate, onClose }: ItemModalProps) {
   const isEditing = item !== null;
   const { data: spaces = [] } = useSpaces();
   const { activeSpaceId } = useActiveSpace();
@@ -67,17 +70,17 @@ export function ItemModal({ isOpen, item, defaultHorizon, onClose }: ItemModalPr
         setType('task');
         setDescription('');
         setUrl('');
-        setSpaceId(activeSpaceId || '');
-        setFocusAreaId('');
+        setSpaceId(defaultSpaceId ?? activeSpaceId ?? '');
+        setFocusAreaId(defaultFocusAreaId ?? '');
         setHorizon(defaultHorizon || 'backlog');
         setPriority(0);
         setEffort('');
         setEnergy('');
-        setDueDate('');
+        setDueDate(defaultDueDate ?? '');
       }
       setTimeout(() => titleRef.current?.focus(), 50);
     }
-  }, [isOpen, item, defaultHorizon, activeSpaceId]);
+  }, [isOpen, item, defaultHorizon, defaultSpaceId, defaultFocusAreaId, defaultDueDate, activeSpaceId]);
 
   const handleSubmit = () => {
     if (!title.trim()) {

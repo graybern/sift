@@ -1,4 +1,4 @@
-import { Plus, Settings, LayoutDashboard, Columns3, Calendar, Table2, Filter } from 'lucide-react';
+import { Plus, Settings, LayoutDashboard, Columns3, Calendar, Table2, Filter, History } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { FunnelIcon } from '../ui/FunnelIcon';
@@ -13,8 +13,7 @@ interface HeaderProps {
   onViewChange: (view: View) => void;
 }
 
-const VIEW_BUTTONS: { id: View; label: string; icon: React.ReactNode }[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={14} /> },
+const TASK_VIEWS: { id: View; label: string; icon: React.ReactNode }[] = [
   { id: 'kanban', label: 'Kanban', icon: <Columns3 size={14} /> },
   { id: 'funnel', label: 'Funnel', icon: <Filter size={14} /> },
   { id: 'calendar', label: 'Calendar', icon: <Calendar size={14} /> },
@@ -22,6 +21,9 @@ const VIEW_BUTTONS: { id: View; label: string; icon: React.ReactNode }[] = [
 ];
 
 export function Header({ onQuickCapture, onAddSpace, onSettings, view, onViewChange }: HeaderProps) {
+  const isDashboard = view === 'dashboard';
+  const isTaskView = !isDashboard && view !== 'log';
+
   return (
     <header className="flex items-center gap-3 px-4 sm:px-6 py-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
       <FunnelIcon size={22} className="text-blue-500 flex-shrink-0" />
@@ -30,9 +32,26 @@ export function Header({ onQuickCapture, onAddSpace, onSettings, view, onViewCha
         <span className="text-[10px] text-slate-400 leading-tight hidden lg:block">Capture everything. Focus on what matters.</span>
       </div>
 
-      {/* View toggle */}
+      {/* Dashboard home button */}
+      <button
+        onClick={() => onViewChange('dashboard')}
+        className={clsx(
+          'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0',
+          isDashboard
+            ? 'bg-blue-500/10 text-blue-500'
+            : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-200'
+        )}
+      >
+        <LayoutDashboard size={14} />
+        <span className="hidden sm:inline">Home</span>
+      </button>
+
+      {/* Divider */}
+      <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
+
+      {/* Task view toggle group */}
       <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 flex-shrink-0">
-        {VIEW_BUTTONS.map((v) => (
+        {TASK_VIEWS.map((v) => (
           <button
             key={v.id}
             onClick={() => onViewChange(v.id)}
@@ -49,14 +68,29 @@ export function Header({ onQuickCapture, onAddSpace, onSettings, view, onViewCha
         ))}
       </div>
 
-      {/* Space selector — visible on all views except dashboard */}
-      {view !== 'dashboard' && (
+      {/* Space selector — visible on task views */}
+      {isTaskView && (
         <div className="flex-shrink-0">
           <SpaceTabs onAddSpace={onAddSpace} />
         </div>
       )}
 
       <div className="flex-1" />
+
+      <div className="flex items-center gap-1 flex-shrink-0">
+        <button
+          onClick={() => onViewChange('log')}
+          className={clsx(
+            'p-2 rounded-lg transition-colors',
+            view === 'log'
+              ? 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200'
+              : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+          )}
+          title="Activity Log"
+        >
+          <History size={18} />
+        </button>
+      </div>
 
       <div className="flex items-center gap-1 flex-shrink-0">
         <button

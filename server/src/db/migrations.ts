@@ -181,6 +181,27 @@ export function runMigrations(db: Database.Database) {
     db.pragma('user_version = 5');
   }
 
+  if ((db.pragma('user_version') as any[])[0]?.user_version === 5) {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS activity_log (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES users(id),
+        entity_type TEXT NOT NULL,
+        entity_id TEXT NOT NULL,
+        entity_title TEXT,
+        action TEXT NOT NULL,
+        changes TEXT,
+        snapshot TEXT,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_activity_log_user_id ON activity_log(user_id);
+      CREATE INDEX IF NOT EXISTS idx_activity_log_entity ON activity_log(entity_type, entity_id);
+      CREATE INDEX IF NOT EXISTS idx_activity_log_created ON activity_log(created_at);
+    `);
+    db.pragma('user_version = 6');
+  }
+
   // Seed default user if none exists
   const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
   if (userCount.count === 0) {

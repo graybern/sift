@@ -14,6 +14,7 @@ import importRouter from './routes/import.js';
 import focusAreasRouter from './routes/focusAreas.js';
 import reviewsRouter from './routes/reviews.js';
 import tagsRouter from './routes/tags.js';
+import activityRouter from './routes/activity.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -34,6 +35,7 @@ app.use('/api/import', importRouter);
 app.use('/api/focus-areas', focusAreasRouter);
 app.use('/api/reviews', reviewsRouter);
 app.use('/api/tags', tagsRouter);
+app.use('/api/activity', activityRouter);
 
 // In production, serve the client build
 if (process.env.NODE_ENV === 'production') {

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import crypto from 'crypto';
 import { getDb } from '../db/database.js';
+import { logActivity, computeChanges } from '../services/activityLogger.js';
 
 const router = Router();
 
@@ -47,7 +48,13 @@ router.post('/', (req, res) => {
     'INSERT INTO focus_areas (id, user_id, space_id, name, icon, position) VALUES (?, ?, ?, ?, ?, ?)'
   ).run(id, userId, space_id, name.trim(), icon, maxPos + 1);
 
-  const area = getDb().prepare('SELECT * FROM focus_areas WHERE id = ?').get(id);
+  const area = getDb().prepare('SELECT * FROM focus_areas WHERE id = ?').get(id) as any;
+
+  logActivity({
+    userId, entityType: 'focus_area', entityId: id,
+    entityTitle: area.name, action: 'created', snapshot: area,
+  });
+
   res.status(201).json(area);
 });
 
@@ -66,7 +73,16 @@ router.put('/:id', (req, res) => {
     'UPDATE focus_areas SET name = COALESCE(?, name), icon = COALESCE(?, icon) WHERE id = ?'
   ).run(name, icon, req.params.id);
 
-  const area = getDb().prepare('SELECT * FROM focus_areas WHERE id = ?').get(req.params.id);
+  const area = getDb().prepare('SELECT * FROM focus_areas WHERE id = ?').get(req.params.id) as any;
+
+  const changes = computeChanges(existing as any, area);
+  if (changes) {
+    logActivity({
+      userId, entityType: 'focus_area', entityId: req.params.id,
+      entityTitle: area.name, action: 'updated', changes, snapshot: area,
+    });
+  }
+
   res.json(area);
 });
 
@@ -78,6 +94,11 @@ router.delete('/:id', (req, res) => {
     res.status(404).json({ error: 'Focus area not found' });
     return;
   }
+
+  logActivity({
+    userId, entityType: 'focus_area', entityId: req.params.id,
+    entityTitle: (existing as any).name, action: 'deleted', snapshot: existing as any,
+  });
 
   getDb().prepare('DELETE FROM focus_areas WHERE id = ?').run(req.params.id);
   res.status(204).end();

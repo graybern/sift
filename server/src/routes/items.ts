@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import crypto from 'crypto';
 import { getDb } from '../db/database.js';
+import { logActivity, computeChanges } from '../services/activityLogger.js';
 
 const router = Router();
 
@@ -140,7 +141,13 @@ router.post('/', (req, res) => {
               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`)
     .run(id, userId, resolvedSpaceId, parent_id || null, focus_area_id || null, type, title.trim(), description || null, url || null, url_meta ? JSON.stringify(url_meta) : null, priority, effort || null, energy || null, horizon, due_date || null);
 
-  const item = getDb().prepare('SELECT * FROM items WHERE id = ?').get(id);
+  const item = getDb().prepare('SELECT * FROM items WHERE id = ?').get(id) as any;
+
+  logActivity({
+    userId, entityType: 'item', entityId: id,
+    entityTitle: item.title, action: 'created', snapshot: item,
+  });
+
   res.status(201).json(item);
 });
 
@@ -196,7 +203,17 @@ router.put('/:id', (req, res) => {
       req.params.id
     );
 
-  const item = getDb().prepare('SELECT * FROM items WHERE id = ?').get(req.params.id);
+  const item = getDb().prepare('SELECT * FROM items WHERE id = ?').get(req.params.id) as any;
+
+  const changes = computeChanges(existing as any, item);
+  if (changes) {
+    const action = changes.horizon ? 'moved' : 'updated';
+    logActivity({
+      userId, entityType: 'item', entityId: req.params.id,
+      entityTitle: item.title, action, changes, snapshot: item,
+    });
+  }
+
   res.json(item);
 });
 
@@ -210,6 +227,11 @@ router.delete('/:id', (req, res) => {
     res.status(404).json({ error: 'Item not found' });
     return;
   }
+
+  logActivity({
+    userId, entityType: 'item', entityId: req.params.id,
+    entityTitle: (existing as any).title, action: 'deleted', snapshot: existing as any,
+  });
 
   getDb().prepare('DELETE FROM items WHERE id = ?').run(req.params.id);
   res.status(204).end();
@@ -247,7 +269,15 @@ router.patch('/:id/horizon', (req, res) => {
   });
   transaction();
 
-  const item = getDb().prepare('SELECT * FROM items WHERE id = ?').get(req.params.id);
+  const item = getDb().prepare('SELECT * FROM items WHERE id = ?').get(req.params.id) as any;
+
+  logActivity({
+    userId, entityType: 'item', entityId: req.params.id,
+    entityTitle: item.title, action: 'moved',
+    changes: { horizon: { from: existing.horizon, to: horizon } },
+    snapshot: item,
+  });
+
   res.json(item);
 });
 

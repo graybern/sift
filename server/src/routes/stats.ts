@@ -6,10 +6,14 @@ const router = Router();
 router.get('/', (req, res) => {
   const userId = (req as any).userId;
   const db = getDb();
+  const { space_id } = req.query;
+
+  const spaceFilter = space_id ? ' AND i.space_id = ?' : '';
+  const spaceParam = space_id ? [space_id] : [];
 
   const horizonDistribution = db
-    .prepare('SELECT horizon, COUNT(*) as count FROM items WHERE user_id = ? AND parent_id IS NULL GROUP BY horizon')
-    .all(userId) as { horizon: string; count: number }[];
+    .prepare(`SELECT i.horizon, COUNT(*) as count FROM items i WHERE i.user_id = ? AND i.parent_id IS NULL${spaceFilter} GROUP BY i.horizon`)
+    .all(userId, ...spaceParam) as { horizon: string; count: number }[];
 
   const bySpace = db
     .prepare(`
@@ -24,60 +28,68 @@ router.get('/', (req, res) => {
     .prepare(`
       SELECT i.*, s.name as space_name, s.color as space_color
       FROM items i LEFT JOIN spaces s ON i.space_id = s.id
-      WHERE i.user_id = ? AND i.due_date < date('now') AND i.horizon != 'done' AND i.parent_id IS NULL
+      WHERE i.user_id = ? AND i.due_date < date('now') AND i.horizon != 'done' AND i.parent_id IS NULL${spaceFilter}
       ORDER BY i.due_date ASC
     `)
-    .all(userId);
+    .all(userId, ...spaceParam);
 
   const dueSoon = db
     .prepare(`
       SELECT i.*, s.name as space_name, s.color as space_color
       FROM items i LEFT JOIN spaces s ON i.space_id = s.id
       WHERE i.user_id = ? AND i.due_date >= date('now') AND i.due_date <= date('now', '+7 days')
-        AND i.horizon != 'done' AND i.parent_id IS NULL
+        AND i.horizon != 'done' AND i.parent_id IS NULL${spaceFilter}
       ORDER BY i.due_date ASC
     `)
-    .all(userId);
+    .all(userId, ...spaceParam);
 
   const recentlyCompleted = db
     .prepare(`
       SELECT i.*, s.name as space_name, s.color as space_color
       FROM items i LEFT JOIN spaces s ON i.space_id = s.id
       WHERE i.user_id = ? AND i.horizon = 'done' AND i.completed_at >= datetime('now', '-14 days')
-        AND i.parent_id IS NULL
+        AND i.parent_id IS NULL${spaceFilter}
       ORDER BY i.completed_at DESC
     `)
-    .all(userId);
+    .all(userId, ...spaceParam);
 
   const velocity = db
     .prepare(`
-      SELECT date(completed_at) as day, COUNT(*) as count
-      FROM items
-      WHERE user_id = ? AND horizon = 'done' AND completed_at >= datetime('now', '-14 days') AND parent_id IS NULL
-      GROUP BY date(completed_at)
+      SELECT date(i.completed_at) as day, COUNT(*) as count
+      FROM items i
+      WHERE i.user_id = ? AND i.horizon = 'done' AND i.completed_at >= datetime('now', '-14 days') AND i.parent_id IS NULL${spaceFilter}
+      GROUP BY date(i.completed_at)
       ORDER BY day ASC
     `)
-    .all(userId) as { day: string; count: number }[];
+    .all(userId, ...spaceParam) as { day: string; count: number }[];
 
   const byType = db
-    .prepare('SELECT type, COUNT(*) as count FROM items WHERE user_id = ? AND parent_id IS NULL GROUP BY type')
-    .all(userId) as { type: string; count: number }[];
+    .prepare(`SELECT i.type, COUNT(*) as count FROM items i WHERE i.user_id = ? AND i.parent_id IS NULL${spaceFilter} GROUP BY i.type`)
+    .all(userId, ...spaceParam) as { type: string; count: number }[];
 
   const byPriority = db
     .prepare(`
-      SELECT priority, COUNT(*) as count
-      FROM items WHERE user_id = ? AND horizon != 'done' AND parent_id IS NULL AND priority > 0
-      GROUP BY priority ORDER BY priority
+      SELECT i.priority, COUNT(*) as count
+      FROM items i WHERE i.user_id = ? AND i.horizon != 'done' AND i.parent_id IS NULL AND i.priority > 0${spaceFilter}
+      GROUP BY i.priority ORDER BY i.priority
     `)
-    .all(userId) as { priority: number; count: number }[];
+    .all(userId, ...spaceParam) as { priority: number; count: number }[];
 
   const byEnergy = db
     .prepare(`
-      SELECT energy, COUNT(*) as count
-      FROM items WHERE user_id = ? AND horizon != 'done' AND parent_id IS NULL AND energy IS NOT NULL
-      GROUP BY energy
+      SELECT i.energy, COUNT(*) as count
+      FROM items i WHERE i.user_id = ? AND i.horizon != 'done' AND i.parent_id IS NULL AND i.energy IS NOT NULL${spaceFilter}
+      GROUP BY i.energy
     `)
-    .all(userId) as { energy: string; count: number }[];
+    .all(userId, ...spaceParam) as { energy: string; count: number }[];
+
+  const byEffort = db
+    .prepare(`
+      SELECT i.effort, COUNT(*) as count
+      FROM items i WHERE i.user_id = ? AND i.horizon != 'done' AND i.parent_id IS NULL AND i.effort IS NOT NULL${spaceFilter}
+      GROUP BY i.effort
+    `)
+    .all(userId, ...spaceParam) as { effort: string; count: number }[];
 
   const byFocusArea = db
     .prepare(`
@@ -85,37 +97,58 @@ router.get('/', (req, res) => {
       FROM focus_areas fa
       LEFT JOIN items i ON i.focus_area_id = fa.id AND i.parent_id IS NULL AND i.horizon != 'done'
       JOIN spaces s ON fa.space_id = s.id
-      WHERE fa.user_id = ?
+      WHERE fa.user_id = ?${space_id ? ' AND fa.space_id = ?' : ''}
       GROUP BY fa.id ORDER BY s.position, fa.position
     `)
-    .all(userId);
+    .all(userId, ...spaceParam);
 
   const staleBacklog = db
     .prepare(`
       SELECT i.*, s.name as space_name, s.color as space_color
       FROM items i LEFT JOIN spaces s ON i.space_id = s.id
       WHERE i.user_id = ? AND i.horizon = 'backlog' AND i.created_at <= datetime('now', '-3 days')
-        AND i.parent_id IS NULL
+        AND i.parent_id IS NULL${spaceFilter}
       ORDER BY i.created_at ASC
     `)
-    .all(userId);
+    .all(userId, ...spaceParam);
 
   const needsAttention = db
     .prepare(`
       SELECT i.*, s.name as space_name, s.color as space_color
       FROM items i LEFT JOIN spaces s ON i.space_id = s.id
       WHERE i.user_id = ? AND i.horizon IN ('later', 'soon', 'now')
-        AND (i.priority = 0 OR i.effort IS NULL) AND i.parent_id IS NULL
+        AND (i.priority = 0 OR i.effort IS NULL) AND i.parent_id IS NULL${spaceFilter}
       ORDER BY i.created_at ASC
     `)
-    .all(userId);
+    .all(userId, ...spaceParam);
 
   const totalItems = db
-    .prepare('SELECT COUNT(*) as count FROM items WHERE user_id = ? AND parent_id IS NULL')
-    .get(userId) as { count: number };
+    .prepare(`SELECT COUNT(*) as count FROM items i WHERE i.user_id = ? AND i.parent_id IS NULL${spaceFilter}`)
+    .get(userId, ...spaceParam) as { count: number };
   const totalDone = db
-    .prepare('SELECT COUNT(*) as count FROM items WHERE user_id = ? AND horizon = \'done\' AND parent_id IS NULL')
-    .get(userId) as { count: number };
+    .prepare(`SELECT COUNT(*) as count FROM items i WHERE i.user_id = ? AND i.horizon = 'done' AND i.parent_id IS NULL${spaceFilter}`)
+    .get(userId, ...spaceParam) as { count: number };
+
+  const createdPerDay = db
+    .prepare(`
+      SELECT date(i.created_at) as day, COUNT(*) as count
+      FROM items i
+      WHERE i.user_id = ? AND i.created_at >= datetime('now', '-14 days') AND i.parent_id IS NULL${spaceFilter}
+      GROUP BY date(i.created_at)
+      ORDER BY day ASC
+    `)
+    .all(userId, ...spaceParam) as { day: string; count: number }[];
+
+  const avgAge = db
+    .prepare(`
+      SELECT i.horizon,
+        ROUND(AVG(julianday('now') - julianday(i.created_at)), 1) as avg_days,
+        COUNT(*) as count
+      FROM items i
+      WHERE i.user_id = ? AND i.horizon != 'done' AND i.parent_id IS NULL${spaceFilter}
+      GROUP BY i.horizon
+    `)
+    .all(userId, ...spaceParam) as { horizon: string; avg_days: number; count: number }[];
 
   res.json({
     horizonDistribution,
@@ -123,11 +156,14 @@ router.get('/', (req, res) => {
     byType,
     byPriority,
     byEnergy,
+    byEffort,
     byFocusArea,
     overdue,
     dueSoon,
     recentlyCompleted,
     velocity,
+    createdPerDay,
+    avgAge,
     staleBacklog,
     needsAttention,
     totals: {

@@ -1,4 +1,4 @@
-import type { Space, FocusArea, Item, Tag, UserSettings, CreateItemInput, UpdateItemInput, UrlMeta, ImportPreview, ImportResult, ReviewSnapshot } from '../types';
+import type { Space, FocusArea, Item, Tag, UserSettings, CreateItemInput, UpdateItemInput, UrlMeta, ImportPreview, ImportResult, ReviewSnapshot, ActivityResponse } from '../types';
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -82,7 +82,24 @@ export const removeTagFromItem = (itemId: string, tagId: string) =>
   apiFetch<void>(`/tags/item/${itemId}/${tagId}`, { method: 'DELETE' });
 
 // Stats
-export const getStats = () => apiFetch<any>('/stats');
+export const getStats = (spaceId?: string) => {
+  const params = spaceId ? `?space_id=${spaceId}` : '';
+  return apiFetch<any>(`/stats${params}`);
+};
+
+// Activity
+export const getActivity = (filters?: { entity_type?: string; action?: string; limit?: number; offset?: number }) => {
+  const params = new URLSearchParams();
+  if (filters) {
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined) params.set(key, String(value));
+    });
+  }
+  const query = params.toString();
+  return apiFetch<ActivityResponse>(`/activity${query ? `?${query}` : ''}`);
+};
+export const revertActivity = (id: string) =>
+  apiFetch<{ success: boolean; entity: any }>(`/activity/${id}/revert`, { method: 'POST' });
 
 // Reviews
 export const getReviews = (limit = 10) => apiFetch<ReviewSnapshot[]>(`/reviews?limit=${limit}`);

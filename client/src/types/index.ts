@@ -1,5 +1,5 @@
 export type Horizon = 'backlog' | 'later' | 'soon' | 'now' | 'done';
-export type View = 'dashboard' | 'kanban' | 'funnel' | 'calendar' | 'grid';
+export type View = 'dashboard' | 'kanban' | 'funnel' | 'calendar' | 'grid' | 'log';
 export type ItemType = 'task' | 'note' | 'link' | 'project';
 export type Priority = 0 | 1 | 2 | 3 | 4;
 export type Effort = 'S' | 'M' | 'L' | 'XL';
@@ -109,6 +109,23 @@ export interface ImportPreview {
 export interface ImportResult {
   success: boolean;
   imported: { spaces: number; items: number; tags: number };
+}
+
+export interface ActivityEntry {
+  id: string;
+  user_id: string;
+  entity_type: 'item' | 'space' | 'focus_area';
+  entity_id: string;
+  entity_title: string;
+  action: 'created' | 'updated' | 'deleted' | 'moved';
+  changes: Record<string, { from: unknown; to: unknown }> | null;
+  snapshot: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface ActivityResponse {
+  entries: ActivityEntry[];
+  total: number;
 }
 
 export interface ReviewMetrics {

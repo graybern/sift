@@ -6,6 +6,7 @@ import { Dashboard } from '../dashboard/Dashboard';
 import { FunnelView } from '../funnel/FunnelView';
 import { CalendarView } from '../calendar/CalendarView';
 import { GridView } from '../grid/GridView';
+import { ActivityLog } from '../activity/ActivityLog';
 import { QuickCapture } from '../items/QuickCapture';
 import { SpaceForm } from '../spaces/SpaceForm';
 import { SettingsModal } from '../settings/SettingsModal';
@@ -25,6 +26,7 @@ export function Layout() {
       case 'funnel': return <FunnelView />;
       case 'calendar': return <CalendarView />;
       case 'grid': return <GridView />;
+      case 'log': return <ActivityLog />;
     }
   };
 

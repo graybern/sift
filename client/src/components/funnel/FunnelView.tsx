@@ -33,6 +33,7 @@ export function FunnelView() {
   const horizonLimits: Record<string, number> = { ...DEFAULT_HORIZON_LIMITS, ...settings?.horizonLimits };
 
   const [editingItem, setEditingItem] = useState<Item | null>(null);
+  const [addingToHorizon, setAddingToHorizon] = useState<Horizon | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [energyFilter, setEnergyFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState<number | null>(null);
@@ -239,6 +240,7 @@ export function FunnelView() {
                       spaces={spaces}
                       focusAreas={focusAreas}
                       onEditItem={setEditingItem}
+                      onAdd={() => setAddingToHorizon(tier.id)}
                     />
                   </div>
                 </div>
@@ -249,10 +251,10 @@ export function FunnelView() {
       </div>
 
       <ItemModal
-        isOpen={editingItem !== null}
+        isOpen={editingItem !== null || addingToHorizon !== null}
         item={editingItem}
-        defaultHorizon={null}
-        onClose={() => setEditingItem(null)}
+        defaultHorizon={addingToHorizon}
+        onClose={() => { setEditingItem(null); setAddingToHorizon(null); }}
       />
     </div>
   );

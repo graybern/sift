@@ -99,6 +99,8 @@ export function Pipeline() {
         isOpen={editingItem !== null || addingToHorizon !== null}
         item={editingItem}
         defaultHorizon={addingToHorizon}
+        defaultSpaceId={activeSpaceId}
+        defaultFocusAreaId={activeFocusAreaId}
         onClose={() => {
           setEditingItem(null);
           setAddingToHorizon(null);
