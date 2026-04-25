@@ -152,3 +152,36 @@ export interface ReviewSnapshot {
   metrics: ReviewMetrics;
   created_at: string;
 }
+
+export interface GitSyncStatus {
+  enabled: boolean;
+  configured: boolean;
+  repoUrl: string | null;
+  branch: string;
+  syncInterval: number;
+  lastSyncAt: string | null;
+  lastSyncStatus: 'success' | 'error' | null;
+  lastError: string | null;
+  isSyncing: boolean;
+  schedulerRunning: boolean;
+  nextSyncAt: string | null;
+}
+
+export interface SyncLogEntry {
+  id: string;
+  direction: 'push' | 'pull' | 'full';
+  status: 'success' | 'error';
+  items_created: number;
+  items_updated: number;
+  items_deleted: number;
+  error_message: string | null;
+  started_at: string;
+  completed_at: string | null;
+}
+
+export interface GitSyncConfig {
+  repoUrl: string;
+  branch?: string;
+  authToken: string;
+  syncInterval?: number;
+}

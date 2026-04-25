@@ -15,6 +15,8 @@ import focusAreasRouter from './routes/focusAreas.js';
 import reviewsRouter from './routes/reviews.js';
 import tagsRouter from './routes/tags.js';
 import activityRouter from './routes/activity.js';
+import syncRouter from './routes/sync.js';
+import { startSyncScheduler } from './services/gitSync/syncScheduler.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -36,6 +38,7 @@ app.use('/api/focus-areas', focusAreasRouter);
 app.use('/api/reviews', reviewsRouter);
 app.use('/api/tags', tagsRouter);
 app.use('/api/activity', activityRouter);
+app.use('/api/sync', syncRouter);
 
 // In production, serve the client build
 if (process.env.NODE_ENV === 'production') {
@@ -47,7 +50,24 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Initialize database
-getDb();
+const db = getDb();
+
+// Start git sync scheduler if configured
+try {
+  const user = db.prepare('SELECT settings FROM users WHERE id = ?').get('default') as any;
+  const settings = user?.settings ? JSON.parse(user.settings) : {};
+  if (settings.gitSyncEnabled && settings.gitRepoUrl && settings.gitAuthToken) {
+    const syncPath = settings.gitSyncPath || path.resolve(process.cwd(), 'data', 'git-sync');
+    startSyncScheduler('default', {
+      repoUrl: settings.gitRepoUrl,
+      branch: settings.gitBranch || 'main',
+      authToken: settings.gitAuthToken,
+      syncPath,
+    }, settings.gitSyncInterval || 30);
+  }
+} catch (err) {
+  console.error('[Sift Sync] Failed to start scheduler on boot:', err);
+}
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

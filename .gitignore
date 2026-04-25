@@ -4,6 +4,7 @@ dist/
 *.db-journal
 *.db-wal
 data/
+data/git-sync/
 .env
 .DS_Store
 *.tsbuildinfo

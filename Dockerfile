@@ -15,7 +15,7 @@ RUN npm run build -w client && npm run build -w server
 
 FROM node:20-alpine
 
-RUN apk add --no-cache python3 make g++
+RUN apk add --no-cache python3 make g++ git
 
 WORKDIR /app
 COPY package.json package-lock.json ./

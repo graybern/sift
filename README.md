@@ -6,6 +6,10 @@
 
 <p align="center">A fast, focused personal task tracker.<br>Tasks flow through a horizon pipeline — from raw capture to completion — so you can see everything across every space and focus area, then pull what matters most into active work.</p>
 
+<p align="center">
+  <img src="Demo.jpg" alt="Sift Dashboard" width="800">
+</p>
+
 ## Features
 
 - **Horizon pipeline** — Backlog → Later → Soon → Now → Done with drag-and-drop

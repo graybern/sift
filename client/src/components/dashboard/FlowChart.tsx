@@ -1,11 +1,12 @@
 interface FlowChartProps {
   velocity: { day: string; count: number }[];
   createdPerDay: { day: string; count: number }[];
+  numDays?: number;
 }
 
-export function FlowChart({ velocity, createdPerDay }: FlowChartProps) {
+export function FlowChart({ velocity, createdPerDay, numDays = 7 }: FlowChartProps) {
   const days: { day: string; created: number; completed: number; label: string }[] = [];
-  for (let i = 13; i >= 0; i--) {
+  for (let i = numDays - 1; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
     const dayStr = d.toISOString().split('T')[0]!;
@@ -22,14 +23,16 @@ export function FlowChart({ velocity, createdPerDay }: FlowChartProps) {
   const totalCompleted = days.reduce((s, d) => s + d.completed, 0);
   const net = totalCompleted - totalCreated;
 
+  const labelEvery = numDays <= 14 ? 1 : numDays <= 30 ? 7 : 14;
+
   return (
     <div>
-      <div className="flex items-end gap-1 h-28">
+      <div className="flex items-end gap-px h-28">
         {days.map((d) => {
           const createdH = (d.created / maxCount) * 100;
           const completedH = (d.completed / maxCount) * 100;
           return (
-            <div key={d.day} className="flex-1 flex items-end gap-[1px] group relative">
+            <div key={d.day} className="flex-1 flex items-end gap-px">
               <div
                 className="flex-1 bg-blue-400/60 rounded-t transition-all duration-300 min-h-[2px]"
                 style={{ height: `${Math.max(createdH, d.created > 0 ? 8 : 2)}%` }}
@@ -42,10 +45,16 @@ export function FlowChart({ velocity, createdPerDay }: FlowChartProps) {
           );
         })}
       </div>
-      <div className="flex items-center gap-1 mt-1 px-0.5">
-        {days.map((d) => (
+      <div className="flex items-center mt-1 px-0.5">
+        {days.map((d, i) => (
           <div key={d.day} className="flex-1 text-center">
-            <span className="text-[8px] text-slate-400">{d.label.slice(0, 2)}</span>
+            {i % labelEvery === 0 ? (
+              <span className="text-[8px] text-slate-400">
+                {numDays > 14
+                  ? `${new Date(d.day).getMonth() + 1}/${new Date(d.day).getDate()}`
+                  : d.label.slice(0, 2)}
+              </span>
+            ) : null}
           </div>
         ))}
       </div>

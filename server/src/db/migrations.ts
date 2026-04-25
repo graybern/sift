@@ -202,6 +202,27 @@ export function runMigrations(db: Database.Database) {
     db.pragma('user_version = 6');
   }
 
+  if ((db.pragma('user_version') as any[])[0]?.user_version === 6) {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS sync_log (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES users(id),
+        direction TEXT NOT NULL,
+        status TEXT NOT NULL,
+        items_created INTEGER DEFAULT 0,
+        items_updated INTEGER DEFAULT 0,
+        items_deleted INTEGER DEFAULT 0,
+        error_message TEXT,
+        started_at TEXT NOT NULL,
+        completed_at TEXT
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_sync_log_user ON sync_log(user_id);
+      CREATE INDEX IF NOT EXISTS idx_sync_log_started ON sync_log(started_at);
+    `);
+    db.pragma('user_version = 7');
+  }
+
   // Seed default user if none exists
   const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
   if (userCount.count === 0) {

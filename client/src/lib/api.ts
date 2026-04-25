@@ -1,4 +1,4 @@
-import type { Space, FocusArea, Item, Tag, UserSettings, CreateItemInput, UpdateItemInput, UrlMeta, ImportPreview, ImportResult, ReviewSnapshot, ActivityResponse } from '../types';
+import type { Space, FocusArea, Item, Tag, UserSettings, CreateItemInput, UpdateItemInput, UrlMeta, ImportPreview, ImportResult, ReviewSnapshot, ActivityResponse, GitSyncStatus, GitSyncConfig, SyncLogEntry } from '../types';
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -82,9 +82,12 @@ export const removeTagFromItem = (itemId: string, tagId: string) =>
   apiFetch<void>(`/tags/item/${itemId}/${tagId}`, { method: 'DELETE' });
 
 // Stats
-export const getStats = (spaceId?: string) => {
-  const params = spaceId ? `?space_id=${spaceId}` : '';
-  return apiFetch<any>(`/stats${params}`);
+export const getStats = (spaceId?: string, days?: number) => {
+  const params = new URLSearchParams();
+  if (spaceId) params.set('space_id', spaceId);
+  if (days) params.set('days', String(days));
+  const query = params.toString();
+  return apiFetch<any>(`/stats${query ? `?${query}` : ''}`);
 };
 
 // Activity
@@ -158,6 +161,23 @@ export const previewImport = (data: any) =>
 
 export const executeImport = (data: any, options: { importSettings: boolean }) =>
   apiFetch<ImportResult>('/import/execute', { method: 'POST', body: JSON.stringify({ data, options }) });
+
+// Git Sync
+export const getSyncStatus = () => apiFetch<GitSyncStatus>('/sync/status');
+export const configureSync = (config: GitSyncConfig) =>
+  apiFetch<{ success: boolean; message: string }>('/sync/configure', { method: 'POST', body: JSON.stringify(config) });
+export const testSyncConnection = (data: { repoUrl: string; authToken: string }) =>
+  apiFetch<{ success: boolean; message: string }>('/sync/test', { method: 'POST', body: JSON.stringify(data) });
+export const triggerSync = () =>
+  apiFetch<any>('/sync/trigger', { method: 'POST' });
+export const triggerPush = () =>
+  apiFetch<any>('/sync/push', { method: 'POST' });
+export const triggerPull = () =>
+  apiFetch<any>('/sync/pull', { method: 'POST' });
+export const disableSync = () =>
+  apiFetch<{ success: boolean }>('/sync/configure', { method: 'DELETE' });
+export const getSyncHistory = (limit = 10) =>
+  apiFetch<SyncLogEntry[]>(`/sync/history?limit=${limit}`);
 
 export async function restoreDatabase(file: File): Promise<{ success: boolean; backupPath: string }> {
   const buffer = await file.arrayBuffer();

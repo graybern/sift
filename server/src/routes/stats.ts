@@ -6,7 +6,8 @@ const router = Router();
 router.get('/', (req, res) => {
   const userId = (req as any).userId;
   const db = getDb();
-  const { space_id } = req.query;
+  const { space_id, days: daysParam } = req.query;
+  const days = Math.min(Math.max(parseInt(daysParam as string) || 7, 1), 365);
 
   const spaceFilter = space_id ? ' AND i.space_id = ?' : '';
   const spaceParam = space_id ? [space_id] : [];
@@ -47,21 +48,21 @@ router.get('/', (req, res) => {
     .prepare(`
       SELECT i.*, s.name as space_name, s.color as space_color
       FROM items i LEFT JOIN spaces s ON i.space_id = s.id
-      WHERE i.user_id = ? AND i.horizon = 'done' AND i.completed_at >= datetime('now', '-14 days')
+      WHERE i.user_id = ? AND i.horizon = 'done' AND i.completed_at >= datetime('now', '-' || ? || ' days')
         AND i.parent_id IS NULL${spaceFilter}
       ORDER BY i.completed_at DESC
     `)
-    .all(userId, ...spaceParam);
+    .all(userId, days, ...spaceParam);
 
   const velocity = db
     .prepare(`
       SELECT date(i.completed_at) as day, COUNT(*) as count
       FROM items i
-      WHERE i.user_id = ? AND i.horizon = 'done' AND i.completed_at >= datetime('now', '-14 days') AND i.parent_id IS NULL${spaceFilter}
+      WHERE i.user_id = ? AND i.horizon = 'done' AND i.completed_at >= datetime('now', '-' || ? || ' days') AND i.parent_id IS NULL${spaceFilter}
       GROUP BY date(i.completed_at)
       ORDER BY day ASC
     `)
-    .all(userId, ...spaceParam) as { day: string; count: number }[];
+    .all(userId, days, ...spaceParam) as { day: string; count: number }[];
 
   const byType = db
     .prepare(`SELECT i.type, COUNT(*) as count FROM items i WHERE i.user_id = ? AND i.parent_id IS NULL${spaceFilter} GROUP BY i.type`)
@@ -133,11 +134,11 @@ router.get('/', (req, res) => {
     .prepare(`
       SELECT date(i.created_at) as day, COUNT(*) as count
       FROM items i
-      WHERE i.user_id = ? AND i.created_at >= datetime('now', '-14 days') AND i.parent_id IS NULL${spaceFilter}
+      WHERE i.user_id = ? AND i.created_at >= datetime('now', '-' || ? || ' days') AND i.parent_id IS NULL${spaceFilter}
       GROUP BY date(i.created_at)
       ORDER BY day ASC
     `)
-    .all(userId, ...spaceParam) as { day: string; count: number }[];
+    .all(userId, days, ...spaceParam) as { day: string; count: number }[];
 
   const avgAge = db
     .prepare(`

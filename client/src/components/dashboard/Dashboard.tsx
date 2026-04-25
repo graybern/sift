@@ -21,8 +21,16 @@ import { FunnelIcon } from '../ui/FunnelIcon';
 import { ItemModal } from '../items/ItemModal';
 import type { Item } from '../../types';
 
+const TIMEFRAME_OPTIONS = [
+  { value: 3, label: '3d' },
+  { value: 7, label: '7d' },
+  { value: 14, label: '14d' },
+  { value: 30, label: '30d' },
+] as const;
+
 export function Dashboard() {
   const [spaceFilter, setSpaceFilter] = useState('');
+  const [chartDays, setChartDays] = useState(7);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const { data: spaces = [] } = useSpaces();
 
@@ -31,8 +39,8 @@ export function Dashboard() {
   const completedRef = useRef<HTMLDivElement>(null);
 
   const { data: stats, isLoading } = useQuery({
-    queryKey: ['stats', spaceFilter],
-    queryFn: () => getStats(spaceFilter || undefined),
+    queryKey: ['stats', spaceFilter, chartDays],
+    queryFn: () => getStats(spaceFilter || undefined, chartDays),
     refetchInterval: 30000,
   });
 
@@ -153,9 +161,24 @@ export function Dashboard() {
             <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
               <ArrowLeftRight size={16} className="text-blue-400" />
               Created vs Completed
-              <span className="text-xs font-normal text-slate-400 ml-auto">Last 14 days</span>
+              <div className="ml-auto flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
+                {TIMEFRAME_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setChartDays(opt.value)}
+                    className={clsx(
+                      'px-2 py-0.5 rounded-md text-[10px] font-medium transition-colors',
+                      chartDays === opt.value
+                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                        : 'text-slate-400'
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </h3>
-            <FlowChart velocity={velocity} createdPerDay={createdPerDay || []} />
+            <FlowChart velocity={velocity} createdPerDay={createdPerDay || []} numDays={chartDays} />
           </div>
 
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
@@ -204,9 +227,9 @@ export function Dashboard() {
             <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
               <TrendingUp size={16} className="text-emerald-400" />
               Completion Velocity
-              <span className="text-xs font-normal text-slate-400 ml-auto">Last 14 days</span>
+              <span className="text-xs font-normal text-slate-400 ml-auto">Last {chartDays}d</span>
             </h3>
-            <VelocityChart velocity={velocity} />
+            <VelocityChart velocity={velocity} numDays={chartDays} />
           </div>
 
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">

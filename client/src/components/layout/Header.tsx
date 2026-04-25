@@ -1,8 +1,9 @@
-import { Plus, Settings, LayoutDashboard, Columns3, Calendar, Table2, Filter, History } from 'lucide-react';
+import { Plus, Settings, LayoutDashboard, Columns3, Calendar, Table2, Filter, History, Cloud, CloudOff, RefreshCw } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { FunnelIcon } from '../ui/FunnelIcon';
 import { SpaceTabs } from './SpaceTabs';
+import { useSyncStatus } from '../../hooks/useSync';
 import type { View } from '../../types';
 
 interface HeaderProps {
@@ -23,6 +24,7 @@ const TASK_VIEWS: { id: View; label: string; icon: React.ReactNode }[] = [
 export function Header({ onQuickCapture, onAddSpace, onSettings, view, onViewChange }: HeaderProps) {
   const isDashboard = view === 'dashboard';
   const isTaskView = !isDashboard && view !== 'log';
+  const { data: syncStatus } = useSyncStatus();
 
   return (
     <header className="flex items-center gap-3 px-4 sm:px-6 py-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
@@ -105,6 +107,29 @@ export function Header({ onQuickCapture, onAddSpace, onSettings, view, onViewCha
           </kbd>
         </button>
         <ThemeToggle />
+        {syncStatus?.enabled && (
+          <button
+            onClick={onSettings}
+            className={clsx(
+              'p-2 rounded-lg transition-colors',
+              syncStatus.isSyncing
+                ? 'text-blue-400'
+                : syncStatus.lastSyncStatus === 'error'
+                  ? 'text-red-400 hover:text-red-500'
+                  : 'text-emerald-400 hover:text-emerald-500'
+            )}
+            title={
+              syncStatus.isSyncing ? 'Syncing...'
+              : syncStatus.lastSyncStatus === 'error' ? `Sync error: ${syncStatus.lastError}`
+              : syncStatus.lastSyncAt ? `Last synced: ${new Date(syncStatus.lastSyncAt).toLocaleTimeString()}`
+              : 'Git sync enabled'
+            }
+          >
+            {syncStatus.isSyncing ? <RefreshCw size={16} className="animate-spin" />
+              : syncStatus.lastSyncStatus === 'error' ? <CloudOff size={16} />
+              : <Cloud size={16} />}
+          </button>
+        )}
         <button
           onClick={onSettings}
           className="p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
