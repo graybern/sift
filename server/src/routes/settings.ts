@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { getDb } from '../db/database.js';
+import { getProjectConfig } from '../services/ai.js';
 
 const router = Router();
 
@@ -36,6 +37,16 @@ router.put('/', (req, res) => {
     .run(JSON.stringify(updated), userId);
 
   res.json(updated);
+});
+
+router.get('/ai-defaults', (_req, res) => {
+  const cfg = getProjectConfig();
+  res.json({
+    vertexDetected: cfg.CLAUDE_CODE_USE_VERTEX === '1',
+    vertexProjectId: cfg.ANTHROPIC_VERTEX_PROJECT_ID || '',
+    vertexRegion: cfg.CLOUD_ML_REGION || '',
+    model: cfg.ANTHROPIC_MODEL || '',
+  });
 });
 
 export default router;

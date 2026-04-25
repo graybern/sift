@@ -68,10 +68,15 @@ export interface HorizonLimits {
   now: number;
 }
 
+export type AiProvider = 'anthropic' | 'vertex';
+
 export interface UserSettings {
   theme: 'light' | 'dark' | 'system';
+  aiProvider?: AiProvider;
   anthropicApiKey?: string;
   anthropicModel?: string;
+  vertexProjectId?: string;
+  vertexRegion?: string;
   inFocusLimit: number;
   autoArchiveDays: number;
   horizonLimits?: HorizonLimits;

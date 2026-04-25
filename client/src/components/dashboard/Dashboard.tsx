@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   AlertTriangle, Clock, CheckCircle2, TrendingUp,
@@ -18,10 +18,17 @@ import { EffortChart } from './EffortChart';
 import { FlowChart } from './FlowChart';
 import { AgeChart } from './AgeChart';
 import { FunnelIcon } from '../ui/FunnelIcon';
+import { ItemModal } from '../items/ItemModal';
+import type { Item } from '../../types';
 
 export function Dashboard() {
   const [spaceFilter, setSpaceFilter] = useState('');
+  const [editingItem, setEditingItem] = useState<Item | null>(null);
   const { data: spaces = [] } = useSpaces();
+
+  const overdueRef = useRef<HTMLDivElement>(null);
+  const dueSoonRef = useRef<HTMLDivElement>(null);
+  const completedRef = useRef<HTMLDivElement>(null);
 
   const { data: stats, isLoading } = useQuery({
     queryKey: ['stats', spaceFilter],
@@ -44,6 +51,10 @@ export function Dashboard() {
     overdue, dueSoon, recentlyCompleted, velocity, createdPerDay, avgAge,
     staleBacklog, needsAttention, totals,
   } = stats;
+
+  const scrollTo = (ref: React.RefObject<HTMLDivElement | null>) => {
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   return (
     <div className="h-full overflow-y-auto">
@@ -97,6 +108,7 @@ export function Dashboard() {
             value={totals.done}
             color="text-emerald-400"
             bgColor="bg-emerald-500/10"
+            onClick={recentlyCompleted.length > 0 ? () => scrollTo(completedRef) : undefined}
           />
           <SummaryCard
             icon={<AlertTriangle size={18} />}
@@ -104,6 +116,7 @@ export function Dashboard() {
             value={overdue.length}
             color={overdue.length > 0 ? 'text-red-400' : 'text-slate-400'}
             bgColor={overdue.length > 0 ? 'bg-red-500/10' : 'bg-slate-500/10'}
+            onClick={overdue.length > 0 ? () => scrollTo(overdueRef) : undefined}
           />
           <SummaryCard
             icon={<Clock size={18} />}
@@ -111,6 +124,7 @@ export function Dashboard() {
             value={dueSoon.length}
             color={dueSoon.length > 0 ? 'text-amber-400' : 'text-slate-400'}
             bgColor={dueSoon.length > 0 ? 'bg-amber-500/10' : 'bg-slate-500/10'}
+            onClick={dueSoon.length > 0 ? () => scrollTo(dueSoonRef) : undefined}
           />
         </div>
 
@@ -253,52 +267,66 @@ export function Dashboard() {
 
         {/* Overdue items */}
         {overdue.length > 0 && (
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-red-200 dark:border-red-900/50 p-5">
+          <div ref={overdueRef} className="bg-white dark:bg-slate-900 rounded-xl border border-red-200 dark:border-red-900/50 p-5">
             <h3 className="text-sm font-semibold text-red-400 mb-3 flex items-center gap-2">
               <AlertTriangle size={16} />
               Overdue ({overdue.length})
             </h3>
-            <ItemList items={overdue} />
+            <ItemList items={overdue} onItemClick={setEditingItem} />
           </div>
         )}
 
         {/* Due soon */}
         {dueSoon.length > 0 && (
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-amber-200 dark:border-amber-900/50 p-5">
+          <div ref={dueSoonRef} className="bg-white dark:bg-slate-900 rounded-xl border border-amber-200 dark:border-amber-900/50 p-5">
             <h3 className="text-sm font-semibold text-amber-400 mb-3 flex items-center gap-2">
               <Calendar size={16} />
               Due This Week ({dueSoon.length})
             </h3>
-            <ItemList items={dueSoon} />
+            <ItemList items={dueSoon} onItemClick={setEditingItem} />
           </div>
         )}
 
         {/* Recently completed */}
         {recentlyCompleted.length > 0 && (
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
+          <div ref={completedRef} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
             <h3 className="text-sm font-semibold text-emerald-400 mb-3 flex items-center gap-2">
               <CheckCircle2 size={16} />
               Recently Completed ({recentlyCompleted.length})
             </h3>
-            <ItemList items={recentlyCompleted} showCompleted />
+            <ItemList items={recentlyCompleted} showCompleted onItemClick={setEditingItem} />
           </div>
         )}
       </div>
+
+      <ItemModal
+        isOpen={editingItem !== null}
+        item={editingItem}
+        defaultHorizon={null}
+        onClose={() => setEditingItem(null)}
+      />
     </div>
   );
 }
 
 function SummaryCard({
-  icon, label, value, color, bgColor,
+  icon, label, value, color, bgColor, onClick,
 }: {
   icon: React.ReactNode;
   label: string;
   value: number;
   color: string;
   bgColor: string;
+  onClick?: () => void;
 }) {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+    <div
+      className={clsx(
+        'bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4',
+        onClick && 'cursor-pointer hover:border-slate-300 dark:hover:border-slate-600 transition-colors'
+      )}
+      onClick={onClick}
+    >
       <div className="flex items-center gap-3">
         <div className={clsx('p-2 rounded-lg', bgColor, color)}>{icon}</div>
         <div>
@@ -310,7 +338,7 @@ function SummaryCard({
   );
 }
 
-function ItemList({ items, showCompleted }: { items: any[]; showCompleted?: boolean }) {
+function ItemList({ items, showCompleted, onItemClick }: { items: any[]; showCompleted?: boolean; onItemClick: (item: any) => void }) {
   const priorityLabels = ['', 'P1', 'P2', 'P3', 'P4'];
   const priorityColors = ['', 'text-red-400', 'text-orange-400', 'text-yellow-400', 'text-slate-400'];
 
@@ -319,7 +347,8 @@ function ItemList({ items, showCompleted }: { items: any[]; showCompleted?: bool
       {items.map((item: any) => (
         <div
           key={item.id}
-          className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+          onClick={() => onItemClick(item)}
+          className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
         >
           {item.space_color && (
             <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: item.space_color }} />

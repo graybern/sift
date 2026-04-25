@@ -1,10 +1,11 @@
-import { useState } from 'react';
-import { Zap, Loader2, AlertTriangle, Check, X, CheckCircle2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Zap, Loader2, AlertTriangle, Check, X, CheckCircle2, ChevronDown, ChevronRight, Brain, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 import { clsx } from 'clsx';
 import { useSettings } from '../../hooks/useSettings';
 import { useMoveItem, useUpdateItem } from '../../hooks/useItems';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { getAiDefaults } from '../../lib/api';
 import type { Horizon } from '../../types';
 
 interface AiAdvisorProps {
@@ -35,7 +36,22 @@ export function AiAdvisor({ overdue, staleBacklog, needsAttention, dueSoon }: Ai
   const updateItem = useUpdateItem();
   const qc = useQueryClient();
 
-  const hasApiKey = !!settings?.anthropicApiKey;
+  const [thinkingText, setThinkingText] = useState('');
+  const [responseText, setResponseText] = useState('');
+  const [currentPhase, setCurrentPhase] = useState<'idle' | 'thinking' | 'responding' | 'done'>('idle');
+  const [statusMessage, setStatusMessage] = useState('');
+  const [showLog, setShowLog] = useState(false);
+  const [streamError, setStreamError] = useState('');
+  const logRef = useRef<HTMLDivElement>(null);
+
+  const { data: aiDefaults } = useQuery({ queryKey: ['ai-defaults'], queryFn: getAiDefaults, staleTime: Infinity });
+  const hasAiConfigured = settings?.aiProvider === 'vertex' || !!settings?.anthropicApiKey || !!aiDefaults?.vertexDetected;
+
+  useEffect(() => {
+    if (logRef.current && (currentPhase === 'thinking' || currentPhase === 'responding')) {
+      logRef.current.scrollTop = logRef.current.scrollHeight;
+    }
+  }, [thinkingText, responseText, currentPhase]);
 
   const buildLocalRecommendations = (): AiRecommendation[] => {
     const recs: AiRecommendation[] = [];
@@ -83,45 +99,98 @@ export function AiAdvisor({ overdue, staleBacklog, needsAttention, dueSoon }: Ai
   };
 
   const analyzeWithAi = async () => {
-    if (!hasApiKey) {
+    if (!hasAiConfigured) {
       setRecommendations(buildLocalRecommendations());
       setHasRun(true);
       return;
     }
 
     setIsAnalyzing(true);
+    setThinkingText('');
+    setResponseText('');
+    setStreamError('');
+    setCurrentPhase('idle');
+    setStatusMessage('');
+    setShowLog(true);
+
     try {
-      const res = await fetch('/api/ai/triage', {
+      const res = await fetch('/api/ai/triage/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ overdue, staleBacklog, needsAttention, dueSoon }),
       });
 
-      if (res.status === 501) {
-        setRecommendations(buildLocalRecommendations());
-        setHasRun(true);
-        return;
-      }
-
       if (res.status === 429) {
         toast.error('Please wait a moment before analyzing again');
+        setIsAnalyzing(false);
+        setShowLog(false);
         return;
       }
 
-      if (!res.ok) {
+      if (!res.ok || !res.body) {
         const err = await res.json().catch(() => ({}));
         toast.error(err.error || 'AI analysis failed');
         setRecommendations(buildLocalRecommendations());
         setHasRun(true);
+        setIsAnalyzing(false);
+        setShowLog(false);
         return;
       }
 
-      const data = await res.json();
-      setRecommendations(data.recommendations || buildLocalRecommendations());
-      setHasRun(true);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const raw = line.slice(6);
+          if (!raw) continue;
+
+          try {
+            const event = JSON.parse(raw);
+
+            switch (event.type) {
+              case 'status':
+                setStatusMessage(event.message);
+                break;
+              case 'phase':
+                setCurrentPhase(event.phase);
+                break;
+              case 'thinking':
+                setThinkingText((prev) => prev + event.content);
+                break;
+              case 'text':
+                setResponseText((prev) => prev + event.content);
+                break;
+              case 'result':
+                setRecommendations(event.recommendations || []);
+                setHasRun(true);
+                setCurrentPhase('done');
+                break;
+              case 'error':
+                setStreamError(event.message);
+                setRecommendations(buildLocalRecommendations());
+                setHasRun(true);
+                setCurrentPhase('done');
+                break;
+              case 'done':
+                break;
+            }
+          } catch {}
+        }
+      }
     } catch {
       setRecommendations(buildLocalRecommendations());
       setHasRun(true);
+      setCurrentPhase('done');
     } finally {
       setIsAnalyzing(false);
     }
@@ -154,6 +223,7 @@ export function AiAdvisor({ overdue, staleBacklog, needsAttention, dueSoon }: Ai
 
   const activeRecs = recommendations.filter((r) => !r.applied && !r.dismissed);
   const hasIssues = overdue.length > 0 || staleBacklog.length > 0 || needsAttention.length > 0;
+  const hasLogContent = thinkingText || responseText || streamError;
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
@@ -161,9 +231,9 @@ export function AiAdvisor({ overdue, staleBacklog, needsAttention, dueSoon }: Ai
         <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
           <Zap size={16} className="text-amber-400" />
           Focus Advisor
-          {!hasApiKey && (
+          {!hasAiConfigured && (
             <span className="text-[10px] font-normal text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
-              Rules-based (add API key in Settings for AI)
+              Rules-based (configure AI in Settings)
             </span>
           )}
         </h3>
@@ -180,7 +250,7 @@ export function AiAdvisor({ overdue, staleBacklog, needsAttention, dueSoon }: Ai
           {isAnalyzing ? (
             <>
               <Loader2 size={14} className="animate-spin" />
-              {hasApiKey ? 'AI analyzing...' : 'Analyzing...'}
+              {currentPhase === 'thinking' ? 'Thinking...' : currentPhase === 'responding' ? 'Responding...' : 'Connecting...'}
             </>
           ) : (
             <>
@@ -190,6 +260,65 @@ export function AiAdvisor({ overdue, staleBacklog, needsAttention, dueSoon }: Ai
           )}
         </button>
       </div>
+
+      {/* AI Log Panel */}
+      {hasLogContent && (
+        <div className="mb-4">
+          <button
+            onClick={() => setShowLog(!showLog)}
+            className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors mb-2"
+          >
+            {showLog ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+            AI Log
+            {statusMessage && (
+              <span className="font-normal text-slate-400 ml-1">({statusMessage})</span>
+            )}
+          </button>
+
+          {showLog && (
+            <div
+              ref={logRef}
+              className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 max-h-72 overflow-y-auto font-mono text-xs"
+            >
+              {thinkingText && (
+                <div className="border-b border-slate-200 dark:border-slate-800">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-500/5 border-b border-slate-200 dark:border-slate-800 sticky top-0">
+                    <Brain size={12} className="text-purple-400" />
+                    <span className="text-purple-400 font-semibold">Thinking</span>
+                    {currentPhase === 'thinking' && (
+                      <Loader2 size={10} className="animate-spin text-purple-400 ml-auto" />
+                    )}
+                  </div>
+                  <pre className="px-3 py-2 text-slate-500 dark:text-slate-400 whitespace-pre-wrap break-words leading-relaxed">
+                    {thinkingText}
+                  </pre>
+                </div>
+              )}
+
+              {responseText && (
+                <div>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/5 border-b border-slate-200 dark:border-slate-800 sticky top-0">
+                    <MessageSquare size={12} className="text-blue-400" />
+                    <span className="text-blue-400 font-semibold">Response</span>
+                    {currentPhase === 'responding' && (
+                      <Loader2 size={10} className="animate-spin text-blue-400 ml-auto" />
+                    )}
+                  </div>
+                  <pre className="px-3 py-2 text-slate-600 dark:text-slate-300 whitespace-pre-wrap break-words leading-relaxed">
+                    {responseText}
+                  </pre>
+                </div>
+              )}
+
+              {streamError && (
+                <div className="px-3 py-2 text-red-400">
+                  Error: {streamError}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {!hasRun && !isAnalyzing && (
         <div className="text-center py-6">
@@ -235,7 +364,7 @@ export function AiAdvisor({ overdue, staleBacklog, needsAttention, dueSoon }: Ai
         </div>
       )}
 
-      {hasRun && activeRecs.length === 0 && (
+      {hasRun && activeRecs.length === 0 && !isAnalyzing && (
         <div className="text-center py-4">
           <CheckCircle2 size={24} className="text-emerald-400 mx-auto mb-2" />
           <p className="text-sm text-slate-400">All caught up! No pending recommendations.</p>

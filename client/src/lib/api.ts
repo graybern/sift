@@ -111,6 +111,8 @@ export const generateReview = (periodStart?: string, periodEnd?: string) =>
 export const getSettings = () => apiFetch<UserSettings>('/settings');
 export const updateSettings = (data: Partial<UserSettings>) =>
   apiFetch<UserSettings>('/settings', { method: 'PUT', body: JSON.stringify(data) });
+export const getAiDefaults = () =>
+  apiFetch<{ vertexDetected: boolean; vertexProjectId: string; vertexRegion: string; model: string }>('/settings/ai-defaults');
 
 // Export / Backup
 export async function downloadExportJson() {

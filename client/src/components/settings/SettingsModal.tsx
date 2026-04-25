@@ -6,9 +6,9 @@ import { ImportPreviewModal } from './ImportPreviewModal';
 import { useSettings, useUpdateSettings } from '../../hooks/useSettings';
 import { useSpaces } from '../../hooks/useSpaces';
 import { useTheme } from '../../hooks/useTheme';
-import { downloadExportJson, downloadDbBackup, downloadSpaceExportJson, previewImport, executeImport, restoreDatabase } from '../../lib/api';
+import { downloadExportJson, downloadDbBackup, downloadSpaceExportJson, previewImport, executeImport, restoreDatabase, getAiDefaults } from '../../lib/api';
 import { Eye, EyeOff, Download, Upload, HardDriveDownload, HardDriveUpload } from 'lucide-react';
-import type { ImportPreview } from '../../types';
+import type { AiProvider, ImportPreview } from '../../types';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -27,9 +27,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [laterLimit, setLaterLimit] = useState(15);
   const [soonLimit, setSoonLimit] = useState(8);
   const [nowLimit, setNowLimit] = useState(5);
+  const [aiProvider, setAiProvider] = useState<AiProvider>('anthropic');
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('claude-sonnet-4-20250514');
   const [showApiKey, setShowApiKey] = useState(false);
+  const [vertexProjectId, setVertexProjectId] = useState('');
+  const [vertexRegion, setVertexRegion] = useState('us-east5');
+  const [detectedConfig, setDetectedConfig] = useState<{ vertexDetected: boolean; vertexProjectId: string; vertexRegion: string; model: string } | null>(null);
 
   // Export state
   const [exportSpaceId, setExportSpaceId] = useState('');
@@ -43,6 +47,12 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const dbInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (isOpen) {
+      getAiDefaults().then(setDetectedConfig).catch(() => {});
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
     if (settings) {
       setInFocusLimit(settings.inFocusLimit);
       setAutoArchiveDays(settings.autoArchiveDays);
@@ -50,9 +60,26 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       setSoonLimit(settings.horizonLimits?.soon ?? 8);
       setNowLimit(settings.horizonLimits?.now ?? 5);
       setApiKey(settings.anthropicApiKey || '');
-      setModel(settings.anthropicModel || 'claude-sonnet-4-20250514');
+
+      const hasExplicitProvider = !!settings.aiProvider;
+      if (hasExplicitProvider) {
+        setAiProvider(settings.aiProvider!);
+        setModel(settings.anthropicModel || 'claude-sonnet-4-20250514');
+        setVertexProjectId(settings.vertexProjectId || '');
+        setVertexRegion(settings.vertexRegion || 'us-east5');
+      } else if (detectedConfig?.vertexDetected) {
+        setAiProvider('vertex');
+        setModel(detectedConfig.model || settings.anthropicModel || 'claude-sonnet-4-20250514');
+        setVertexProjectId(detectedConfig.vertexProjectId);
+        setVertexRegion(detectedConfig.vertexRegion || 'us-east5');
+      } else {
+        setAiProvider('anthropic');
+        setModel(settings.anthropicModel || 'claude-sonnet-4-20250514');
+        setVertexProjectId('');
+        setVertexRegion('us-east5');
+      }
     }
-  }, [settings]);
+  }, [settings, detectedConfig]);
 
   const handleSave = () => {
     updateSettings.mutate(
@@ -60,8 +87,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         inFocusLimit,
         autoArchiveDays,
         horizonLimits: { later: laterLimit, soon: soonLimit, now: nowLimit },
+        aiProvider,
         anthropicApiKey: apiKey || undefined,
         anthropicModel: model,
+        vertexProjectId: vertexProjectId || undefined,
+        vertexRegion: vertexRegion || undefined,
       },
       {
         onSuccess: () => {
@@ -246,29 +276,98 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         {/* AI Integration */}
         <section>
           <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">AI Integration</h3>
-          <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">
-              Anthropic API Key
-            </label>
-            <div className="relative">
-              <input
-                type={showApiKey ? 'text' : 'password'}
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="sk-ant-..."
-                className={inputClass + ' pr-10'}
-              />
+
+          <div className="mb-3">
+            <label className="block text-xs font-medium text-slate-500 mb-1">Provider</label>
+            <div className="flex gap-2">
               <button
-                onClick={() => setShowApiKey(!showApiKey)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                onClick={() => setAiProvider('anthropic')}
+                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  aiProvider === 'anthropic'
+                    ? 'bg-blue-500/20 text-blue-500 border border-blue-500/30'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border border-transparent'
+                }`}
               >
-                {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                Anthropic API
+              </button>
+              <button
+                onClick={() => setAiProvider('vertex')}
+                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  aiProvider === 'vertex'
+                    ? 'bg-blue-500/20 text-blue-500 border border-blue-500/30'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border border-transparent'
+                }`}
+              >
+                Vertex AI
               </button>
             </div>
-            <p className="text-[10px] text-slate-400 mt-1">
-              Stored locally. Used for AI-powered triage and focus suggestions on the Dashboard.
-            </p>
           </div>
+
+          {aiProvider === 'anthropic' && (
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">
+                API Key
+              </label>
+              <div className="relative">
+                <input
+                  type={showApiKey ? 'text' : 'password'}
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="sk-ant-..."
+                  className={inputClass + ' pr-10'}
+                />
+                <button
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">
+                Stored locally. Used for AI-powered triage and focus suggestions.
+              </p>
+            </div>
+          )}
+
+          {aiProvider === 'vertex' && (
+            <div className="space-y-3">
+              {detectedConfig?.vertexDetected && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <span className="text-xs text-emerald-500 font-medium">
+                    Auto-detected from .claude/settings.local.json
+                  </span>
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">
+                  Google Cloud Project ID
+                </label>
+                <input
+                  type="text"
+                  value={vertexProjectId}
+                  onChange={(e) => setVertexProjectId(e.target.value)}
+                  placeholder={detectedConfig?.vertexProjectId || 'my-gcp-project'}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">
+                  Region
+                </label>
+                <input
+                  type="text"
+                  value={vertexRegion}
+                  onChange={(e) => setVertexRegion(e.target.value)}
+                  placeholder={detectedConfig?.vertexRegion || 'us-east5'}
+                  className={inputClass}
+                />
+              </div>
+              <p className="text-[10px] text-slate-400">
+                Uses Application Default Credentials (ADC). Run <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">gcloud auth application-default login</code> to authenticate.
+              </p>
+            </div>
+          )}
 
           <div className="mt-3">
             <label className="block text-xs font-medium text-slate-500 mb-1">
@@ -279,19 +378,42 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               onChange={(e) => setModel(e.target.value)}
               className={inputClass}
             >
-              <optgroup label="Claude 4.6">
-                <option value="claude-opus-4-6-20250610">Claude Opus 4.6 (most capable)</option>
-                <option value="claude-sonnet-4-6-20250610">Claude Sonnet 4.6 (balanced)</option>
-              </optgroup>
-              <optgroup label="Claude 4.5">
-                <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (fastest, cheapest)</option>
-              </optgroup>
-              <optgroup label="Claude 4">
-                <option value="claude-sonnet-4-20250514">Claude Sonnet 4 (previous gen)</option>
-              </optgroup>
+              {aiProvider === 'vertex' ? (
+                <>
+                  <optgroup label="Claude 4.6 (latest)">
+                    <option value="claude-opus-4-6@default">claude-opus-4-6@default (most capable)</option>
+                    <option value="claude-sonnet-4-6@default">claude-sonnet-4-6@default (balanced)</option>
+                  </optgroup>
+                  <optgroup label="Claude 4.6 (pinned)">
+                    <option value="claude-opus-4-6@20250610">claude-opus-4-6@20250610</option>
+                    <option value="claude-sonnet-4-6@20250610">claude-sonnet-4-6@20250610</option>
+                  </optgroup>
+                  <optgroup label="Claude 4.5">
+                    <option value="claude-haiku-4-5@20251001">claude-haiku-4-5@20251001 (fastest)</option>
+                  </optgroup>
+                  <optgroup label="Claude 4">
+                    <option value="claude-sonnet-4@20250514">claude-sonnet-4@20250514</option>
+                  </optgroup>
+                </>
+              ) : (
+                <>
+                  <optgroup label="Claude 4.6">
+                    <option value="claude-opus-4-6-20250610">Claude Opus 4.6 (most capable)</option>
+                    <option value="claude-sonnet-4-6-20250610">Claude Sonnet 4.6 (balanced)</option>
+                  </optgroup>
+                  <optgroup label="Claude 4.5">
+                    <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (fastest, cheapest)</option>
+                  </optgroup>
+                  <optgroup label="Claude 4">
+                    <option value="claude-sonnet-4-20250514">Claude Sonnet 4 (previous gen)</option>
+                  </optgroup>
+                </>
+              )}
             </select>
             <p className="text-[10px] text-slate-400 mt-1">
-              Opus is the most capable but costs more. Haiku is fast and cheap for simple triage.
+              {aiProvider === 'vertex'
+                ? '@default always resolves to the latest version. Pinned versions are fixed.'
+                : 'Opus is the most capable but costs more. Haiku is fast and cheap for simple triage.'}
             </p>
           </div>
         </section>

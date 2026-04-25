@@ -1,5 +1,45 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import Anthropic from '@anthropic-ai/sdk';
+import { AnthropicVertex } from '@anthropic-ai/vertex-sdk';
 import { getDb } from '../db/database.js';
+
+function findProjectRoot(): string {
+  let dir = process.cwd();
+  // Walk up until we find a .claude directory or root package.json with workspaces
+  for (let i = 0; i < 5; i++) {
+    try {
+      readFileSync(join(dir, '.claude', 'settings.local.json'), 'utf-8');
+      return dir;
+    } catch {}
+    try {
+      readFileSync(join(dir, '.claude', 'settings.json'), 'utf-8');
+      return dir;
+    } catch {}
+    const parent = join(dir, '..');
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return process.cwd();
+}
+
+function loadProjectClaudeConfig(): Record<string, string> {
+  const root = findProjectRoot();
+  for (const name of ['settings.local.json', 'settings.json']) {
+    try {
+      const raw = readFileSync(join(root, '.claude', name), 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (parsed.env && typeof parsed.env === 'object') return parsed.env;
+    } catch {}
+  }
+  return {};
+}
+
+let _projectConfig: Record<string, string> | null = null;
+export function getProjectConfig(): Record<string, string> {
+  if (!_projectConfig) _projectConfig = loadProjectClaudeConfig();
+  return _projectConfig;
+}
 
 interface ItemContext {
   id: string;
@@ -32,8 +72,35 @@ function getUserSettings(userId: string) {
   return user?.settings ? JSON.parse(user.settings) : {};
 }
 
-function createClient(apiKey: string) {
-  return new Anthropic({ apiKey });
+// Anthropic API: claude-sonnet-4-6-20250514 → Vertex: claude-sonnet-4-6@20250514
+// Already in Vertex format (contains @) or @default → pass through
+function toVertexModelName(model: string): string {
+  if (model.includes('@')) return model;
+  return model.replace(/-(\d{8})$/, '@$1');
+}
+
+function createClient(settings: any): { client: Anthropic | AnthropicVertex; model: string } {
+  const cfg = getProjectConfig();
+  const provider = settings.aiProvider || (cfg.CLAUDE_CODE_USE_VERTEX === '1' ? 'vertex' : 'anthropic');
+  const baseModel = settings.anthropicModel || cfg.ANTHROPIC_MODEL || 'claude-sonnet-4-6-20250514';
+
+  if (provider === 'vertex') {
+    const projectId = settings.vertexProjectId || process.env.GOOGLE_CLOUD_PROJECT || process.env.ANTHROPIC_VERTEX_PROJECT_ID || cfg.ANTHROPIC_VERTEX_PROJECT_ID;
+    const region = settings.vertexRegion || process.env.GOOGLE_CLOUD_REGION || process.env.CLOUD_ML_REGION || cfg.CLOUD_ML_REGION || 'us-east5';
+
+    if (!projectId) {
+      throw new Error('Vertex AI requires a project ID. Set it in Settings or via GOOGLE_CLOUD_PROJECT env var.');
+    }
+
+    const client = new AnthropicVertex({ projectId, region });
+    return { client: client as unknown as Anthropic, model: toVertexModelName(baseModel) };
+  }
+
+  if (!settings.anthropicApiKey) {
+    throw new Error('No API key configured');
+  }
+
+  return { client: new Anthropic({ apiKey: settings.anthropicApiKey }), model: baseModel };
 }
 
 function enrichItems(items: any[]): ItemContext[] {
@@ -58,7 +125,7 @@ function enrichItems(items: any[]): ItemContext[] {
   }));
 }
 
-const SYSTEM_PROMPT = `You are a productivity advisor for a personal task tracker. The user organizes tasks through a horizon pipeline: backlog → later → soon → now → done.
+export const SYSTEM_PROMPT = `You are a productivity advisor for a personal task tracker. The user organizes tasks through a horizon pipeline: backlog → later → soon → now → done.
 
 Key concepts:
 - Horizons represent time proximity: backlog (no time pressure), later (months out), soon (weeks out), now (this week, committed), done (completed)
@@ -69,14 +136,12 @@ Key concepts:
 
 Be direct and actionable. Focus on the most impactful recommendations. Max 8 recommendations.`;
 
-export async function triageItems(
+export function prepareTriageRequest(
   userId: string,
   data: { overdue: any[]; staleBacklog: any[]; needsAttention: any[]; dueSoon: any[] }
-): Promise<{ recommendations: TriageRecommendation[] }> {
+) {
   const settings = getUserSettings(userId);
-  if (!settings.anthropicApiKey) {
-    throw new Error('No API key configured');
-  }
+  const { client, model } = createClient(settings);
 
   const allItems = [
     ...enrichItems(data.overdue),
@@ -85,21 +150,7 @@ export async function triageItems(
     ...enrichItems(data.dueSoon),
   ];
 
-  if (allItems.length === 0) {
-    return { recommendations: [] };
-  }
-
-  const client = createClient(settings.anthropicApiKey);
-  const model = settings.anthropicModel || 'claude-sonnet-4-6-20250514';
-
-  const response = await client.messages.create({
-    model,
-    max_tokens: 1024,
-    system: SYSTEM_PROMPT,
-    messages: [
-      {
-        role: 'user',
-        content: `Review these items that need attention and provide triage recommendations.
+  const userMessage = `Review these items that need attention and provide triage recommendations.
 
 Items needing triage:
 ${JSON.stringify(allItems, null, 2)}
@@ -118,19 +169,16 @@ For each recommendation, respond with a JSON array of objects with these fields:
 - suggestedHorizon: (optional) "backlog", "later", "soon", or "now"
 - suggestedPriority: (optional) 1-4
 
-Respond ONLY with the JSON array, no other text.`,
-      },
-    ],
-  });
+Respond ONLY with the JSON array, no other text.`;
 
-  const text = response.content[0].type === 'text' ? response.content[0].text : '';
+  return { client, model, allItems, userMessage };
+}
+
+export function parseTriageResponse(text: string): TriageRecommendation[] {
   const jsonMatch = text.match(/\[[\s\S]*\]/);
-  if (!jsonMatch) {
-    return { recommendations: [] };
-  }
-
+  if (!jsonMatch) return [];
   const parsed = JSON.parse(jsonMatch[0]) as any[];
-  const recommendations: TriageRecommendation[] = parsed.map((rec, i) => ({
+  return parsed.map((rec, i) => ({
     id: `ai-${i}`,
     itemId: rec.itemId,
     itemTitle: rec.itemTitle,
@@ -139,15 +187,32 @@ Respond ONLY with the JSON array, no other text.`,
     suggestedHorizon: rec.suggestedHorizon,
     suggestedPriority: rec.suggestedPriority,
   }));
+}
 
-  return { recommendations };
+export async function triageItems(
+  userId: string,
+  data: { overdue: any[]; staleBacklog: any[]; needsAttention: any[]; dueSoon: any[] }
+): Promise<{ recommendations: TriageRecommendation[] }> {
+  const { client, model, allItems, userMessage } = prepareTriageRequest(userId, data);
+
+  if (allItems.length === 0) {
+    return { recommendations: [] };
+  }
+
+  const response = await client.messages.create({
+    model,
+    max_tokens: 1024,
+    system: SYSTEM_PROMPT,
+    messages: [{ role: 'user', content: userMessage }],
+  });
+
+  const text = response.content[0].type === 'text' ? response.content[0].text : '';
+  return { recommendations: parseTriageResponse(text) };
 }
 
 export async function focusRecommendation(userId: string): Promise<{ suggestions: any[] }> {
   const settings = getUserSettings(userId);
-  if (!settings.anthropicApiKey) {
-    throw new Error('No API key configured');
-  }
+  const { client, model } = createClient(settings);
 
   const db = getDb();
   const nowItems = enrichItems(
@@ -160,9 +225,6 @@ export async function focusRecommendation(userId: string): Promise<{ suggestions
   if (nowItems.length === 0 && soonItems.length === 0) {
     return { suggestions: [] };
   }
-
-  const client = createClient(settings.anthropicApiKey);
-  const model = settings.anthropicModel || 'claude-sonnet-4-6-20250514';
 
   const response = await client.messages.create({
     model,
@@ -201,9 +263,7 @@ Respond ONLY with the JSON array, no other text.`,
 
 export async function summarizePipeline(userId: string): Promise<{ summary: string }> {
   const settings = getUserSettings(userId);
-  if (!settings.anthropicApiKey) {
-    throw new Error('No API key configured');
-  }
+  const { client, model } = createClient(settings);
 
   const db = getDb();
   const counts = db.prepare(
@@ -217,9 +277,6 @@ export async function summarizePipeline(userId: string): Promise<{ summary: stri
   const recentlyCompleted = db.prepare(
     "SELECT COUNT(*) as count FROM items WHERE user_id = ? AND horizon = 'done' AND completed_at > datetime('now', '-7 days')"
   ).get(userId) as any;
-
-  const client = createClient(settings.anthropicApiKey);
-  const model = settings.anthropicModel || 'claude-sonnet-4-6-20250514';
 
   const response = await client.messages.create({
     model,
